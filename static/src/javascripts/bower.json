@@ -13,7 +13,7 @@
     "react": "0.11.2",
     "reqwest": "guardian/reqwest#master",
     "enhancer": "0.1.1",
-    "videojs": "4.8.3",
+    "videojs": "videojs/video.js#85730d7a1bda3305c830978d28e7f136354dc82b",
     "videojs-contrib-ads": "guardian/videojs-contrib-ads#89e82ee615c6766d7f4bd6035c301b8a19793698",
     "videojs-vast": "0.1.9",
     "videojs-persistvolume": "~0.1.0",
@@ -26,7 +26,7 @@
   },
   "resolutions": {
     "videojs-contrib-ads": "89e82ee615c6766d7f4bd6035c301b8a19793698",
-    "videojs": "4.8.3"
+    "videojs": "85730d7a1bda3305c830978d28e7f136354dc82b"
   },
   "install": {
     "path": "components",

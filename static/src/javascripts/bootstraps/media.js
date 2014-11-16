@@ -269,6 +269,10 @@ define([
 
     function initPlayer() {
 
+        if (config.page.videoJsSwf) {
+            videojs.options.flash.swf = config.page.videoJsSwf;
+        }
+
         videojs.plugin('adCountdown', adCountdown);
         videojs.plugin('fullscreener', fullscreener);
 
