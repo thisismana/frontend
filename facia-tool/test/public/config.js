@@ -6,6 +6,7 @@ curl.config({
         reqwest:       'components/reqwest/reqwest',
         bean:          'components/bean/bean',
         bonzo:         'components/bonzo/bonzo',
+        'es6-promise': 'components/es6-promise/promise',
         omniture:      'omniture.js',
         views:         '../../app/views',
         css:           '../css',

@@ -8,6 +8,8 @@ module.exports = function(config) {
         {pattern: 'public/js/components/jquery-mockjax/jquery.mockjax.js', included: true},
         {pattern: 'public/js/components/curl/dist/curl-with-js-and-domReady/curl.js', included: true},
         {pattern: 'public/js/components/underscore/underscore.js', included: true},
+        // Include a polyfill of es6 Promise only for PhantomJS
+        {pattern: 'public/js/components/es6-promise/promise.js', included: false},
         {pattern: 'public/js/**/*.js', included: false},
         {pattern: 'public/css/*.css', included: true},
         {pattern: 'public/css/!(*.css)', included: false},
