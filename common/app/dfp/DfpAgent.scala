@@ -259,11 +259,11 @@ trait DfpAgentLifecycle extends GlobalSettings {
 
     Jobs.deschedule("DfpDataRefreshJob")
     Jobs.schedule("DfpDataRefreshJob", "0 0/2 * * * ?") {
-      DfpAgent.refresh()
+//      DfpAgent.refresh()
     }
 
     AkkaAsync {
-      DfpAgent.refresh()
+//      DfpAgent.refresh()
     }
   }
 

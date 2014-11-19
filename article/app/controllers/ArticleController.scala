@@ -57,9 +57,9 @@ object ArticleController extends Controller with Logging with ExecutionContexts 
     log.info(s"Fetching article: $path for edition ${edition.id}: ${RequestLog(request)}")
     val response: Future[ItemResponse] = LiveContentApi.item(path, edition)
       .showRelated(InlineRelatedContentSwitch.isSwitchedOn)
-      .showTags("all")
-      .showFields("all")
-      .showReferences("all")
+//      .showTags("all")
+//      .showFields("all")
+//      .showReferences("all")
       .response
 
     val result = response map { response =>

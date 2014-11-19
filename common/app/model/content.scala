@@ -156,7 +156,7 @@ class Content protected (val apiContent: ApiContentWithMeta) extends Trail with 
       ("blogIds", JsString(blogs.map { _.id.split("/").last }.mkString(","))),
       ("commentable", JsBoolean(isCommentable)),
       ("hasStoryPackage", JsBoolean(fields.get("hasStoryPackage").exists(_.toBoolean))),
-      ("pageCode", JsString(fields("internalPageCode"))),
+      ("pageCode", JsString(/*fields("internalPageCode")*/"internalPageCode")),
       ("isLive", JsBoolean(isLive)),
       ("isContent", JsBoolean(true)),
       ("wordCount", JsNumber(wordCount)),

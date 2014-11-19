@@ -46,10 +46,10 @@ trait CommercialLifecycle extends GlobalSettings with Logging with ExecutionCont
         case Failure(e) => log.warn(s"Failed to refresh master class tags: ${e.getMessage}")
       }
 
-      Countries.refresh() andThen {
+/*      Countries.refresh() andThen {
         case Success(_) => TravelOffersAgent.refresh()
         case Failure(e) => log.warn(s"Failed to refresh travel offer countries: ${e.getMessage}")
-      }
+      }*/
 
       Industries.refresh() andThen {
         case Success(_) => JobsAgent.refresh()
@@ -59,7 +59,7 @@ trait CommercialLifecycle extends GlobalSettings with Logging with ExecutionCont
       BestBuysAgent.refresh()
 
       BestsellersAgent.refresh()
-      TravelOffersRefresh.refresh()
+//      TravelOffersRefresh.refresh()
     }
   }
 
@@ -85,7 +85,7 @@ trait RefreshJob extends Logging {
 
     log.info(s"$name refresh on schedule $schedule")
     Jobs.schedule(s"${name}RefreshJob", schedule) {
-      refresh()
+//      refresh()
     }
   }
 

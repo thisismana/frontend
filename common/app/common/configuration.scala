@@ -91,10 +91,10 @@ class GuardianConfiguration(val application: String, val webappConfDirectory: St
           .getOrElse(contentApiLiveHost)
 
     lazy val key: Option[String] = configuration.getStringProperty("content.api.key")
-    lazy val timeout: Int = configuration.getIntegerProperty("content.api.timeout.millis").getOrElse(2000)
+    lazy val timeout: Int = configuration.getIntegerProperty("content.api.timeout.millis").getOrElse(15000)
 
     lazy val circuitBreakerErrorThreshold =
-      configuration.getIntegerProperty("content.api.circuit_breaker.max_failures").getOrElse(5)
+      configuration.getIntegerProperty("content.api.circuit_breaker.max_failures").getOrElse(30)
 
     lazy val circuitBreakerResetTimeout =
       configuration.getIntegerProperty("content.api.circuit_breaker.reset_timeout").getOrElse(20000)
@@ -114,7 +114,7 @@ class GuardianConfiguration(val application: String, val webappConfDirectory: St
   object ophanApi {
     lazy val key = configuration.getStringProperty("ophan.api.key")
     lazy val host = configuration.getStringProperty("ophan.api.host")
-    lazy val timeout = configuration.getIntegerProperty("content.api.timeout.millis").getOrElse(2000)
+    lazy val timeout = configuration.getIntegerProperty("content.api.timeout.millis").getOrElse(15000)
   }
 
   object ophan {

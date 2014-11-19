@@ -12,11 +12,11 @@ class IdentityJobsPlugin(app: Application) extends Plugin with ExecutionContexts
 
   def scheduleJobs() {
       Jobs.schedule("BlockedEmailsRefreshJobs", "0 0/30 * * * ?") {
-         BlockedEmailDomainList.run()
+//         BlockedEmailDomainList.run()
       }
 
       Jobs.schedule("TorExitNodeRefeshJob","0 0/30 * * * ?" ) {
-         TorExitNodeList.run()
+//         TorExitNodeList.run()
       }
   }
 
@@ -30,7 +30,7 @@ class IdentityJobsPlugin(app: Application) extends Plugin with ExecutionContexts
     scheduleJobs()
 
     AkkaAsync.after(5.seconds) {
-      BlockedEmailDomainList.run()
+//      BlockedEmailDomainList.run()
       TorExitNodeList.run()
     }
   }
