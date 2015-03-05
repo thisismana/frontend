@@ -1,5 +1,4 @@
 define([
-    'lodash/functions/once',
     'lodash/objects/cloneDeep',
     'common/utils/$',
     'common/utils/config',
@@ -7,7 +6,6 @@ define([
     'common/modules/article/spacefinder',
     'common/modules/commercial/create-ad-slot'
 ], function (
-    once,
     cloneDeep,
     $,
     config,
@@ -15,6 +13,26 @@ define([
     spacefinder,
     createAdSlot
 ) {
+
+    function getRules() {
+        return {
+            minAbove: detect.isBreakpoint({ max: 'tablet' }) ? 300 : 700,
+            minBelow: 300,
+            selectors: {
+                ' > h2': {minAbove: detect.getBreakpoint() === 'mobile' ? 20 : 0, minBelow: 250},
+                ' > *:not(p):not(h2)': {minAbove: 35, minBelow: 400},
+                ' .ad-slot': {minAbove: 500, minBelow: 500}
+            }
+        };
+    }
+
+    function getLenientRules() {
+        var lenientRules = cloneDeep(getRules());
+        // more lenient rules, closer to the top start of the article
+        lenientRules.minAbove = 300;
+        lenientRules.selectors[' > h2'].minAbove = 20;
+        return lenientRules;
+    }
 
     var ads = [],
         adNames = [['inline1', 'inline'], ['inline2', 'inline']],
@@ -28,7 +46,7 @@ define([
         },
         init = function () {
 
-            var breakpoint, rules, lenientRules;
+            var rules, lenientRules;
 
             // is the switch off, or not an article, or a live blog
             if (
@@ -39,28 +57,9 @@ define([
                 return false;
             }
 
-            breakpoint = detect.getBreakpoint();
-            rules      = {
-                minAbove: detect.isBreakpoint({ max: 'tablet' }) ? 300 : 700,
-                minBelow: 300,
-                selectors: {
-                    ' > h2': {minAbove: breakpoint === 'mobile' ? 20 : 0, minBelow: 250},
-                    ' > *:not(p):not(h2)': {minAbove: 35, minBelow: 400},
-                    ' .ad-slot': {minAbove: 500, minBelow: 500}
-                }
-            },
-            lenientRules = cloneDeep(rules);
+            rules = getRules();
+            lenientRules = getLenientRules();
 
-            // more lenient rules, closer to the top start of the article
-            lenientRules.minAbove = 300;
-
-            if (
-                config.page.sponsorshipType === 'foundation-supported' &&
-                    config.page.isInappropriateForSponsorship === false
-            ) {
-                adNames.unshift(['fobadge', ['im', 'paid-for-badge']]);
-                insertAdAtP(spacefinder.getParaWithSpace(lenientRules));
-            }
             if (config.page.hasInlineMerchandise) {
                 adNames.unshift(['im', 'im']);
                 insertAdAtP(spacefinder.getParaWithSpace(lenientRules));
@@ -74,12 +73,14 @@ define([
 
     return {
 
-        init: once(init),
+        init: init,
 
-        destroy: function () {
-            ads.forEach(function ($ad) {
-                $ad.remove();
-            });
+        // rules exposed for spacefinder debugging
+        getRules: getRules,
+        getLenientRules: getLenientRules,
+
+        reset: function () {
+            ads = [];
         }
 
     };

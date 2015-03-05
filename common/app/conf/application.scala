@@ -2,10 +2,10 @@ package conf
 
 import common.Assets.Assets
 import common.{ExecutionContexts, GuardianConfiguration}
-import contentapi.ElasticSearchLiveContentApiClient
+import filters.RequestLoggingFilter
+import contentapi.{ElasticSearchPreviewContentApiClient, ElasticSearchLiveContentApiClient}
 import play.api.mvc._
 import play.filters.gzip.GzipFilter
-import Switches.ForceHttpResponseCodeSwitch
 
 import scala.concurrent.Future
 
@@ -13,13 +13,16 @@ object Configuration extends GuardianConfiguration("frontend", webappConfDirecto
 
 object LiveContentApi extends ElasticSearchLiveContentApiClient
 
+object PreviewContentApi extends ElasticSearchPreviewContentApiClient
+
 object Static extends Assets(Configuration.assets.path)
+object StaticSecure extends Assets(Configuration.assets.securePath)
 
 object Gzipper extends GzipFilter(
   shouldGzip = (req, resp) => !resp.headers.get("Content-Type").exists(_.startsWith("image/"))
 )
 
-object JsonHeadersFilter extends Filter with ExecutionContexts with implicits.Requests {
+object JsonVaryHeadersFilter extends Filter with ExecutionContexts with implicits.Requests {
 
   private val varyFields = List("Origin", "Accept")
   private val defaultVaryFields = varyFields.mkString(",")
@@ -31,44 +34,11 @@ object JsonHeadersFilter extends Filter with ExecutionContexts with implicits.Re
 
         // Accept-Encoding Vary field will be set by Gzipper
         val vary = headers.get("Vary").fold(defaultVaryFields)(v => (v :: varyFields).mkString(","))
-        val resultWithVary = result.withHeaders("Vary" -> vary)
+        result.withHeaders("Vary" -> vary)
 
-        // Set CORS headers on all outgoin JSON requests
-        request.headers.get("Origin") match {
-          case None => resultWithVary
-          case Some(requestOrigin) =>
-            resultWithVary.withHeaders(
-              "Access-Control-Allow-Origin" -> Configuration.ajax.corsOrigins.find(_ == requestOrigin).getOrElse("*"),
-              "Access-Control-Allow-Credentials" -> "true",
-              "Access-Control-Allow-Headers" -> "GET,POST,X-Requested-With"
-            )
-        }
-
-      } else {
+     } else {
         result
       }
-    }
-  }
-}
-
-object ForceHttpResponseFilter extends Filter with ExecutionContexts with Results {
-
-  import scala.concurrent.Future.successful
-
-  private val statuses = Map(
-    "404" -> NotFound("Not found"),
-    "500" -> InternalServerError("Internal server error"),
-    "503" -> ServiceUnavailable("Service unavailable"),
-    "504" -> GatewayTimeout("Gateway timeout")
-  )
-
-  override def apply(nextFilter: (RequestHeader) => Future[Result])(request: RequestHeader): Future[Result] = {
-    if (ForceHttpResponseCodeSwitch.isSwitchedOff) {
-      nextFilter(request)
-    } else {
-      request.headers.get("X-Gu-Force-Status").flatMap(statuses.get).map(successful).getOrElse(
-        nextFilter(request)
-      )
     }
   }
 }
@@ -84,7 +54,12 @@ object BackendHeaderFilter extends Filter with ExecutionContexts {
 }
 
 object Filters {
-                                     // NOTE - order is important here, Gzipper AFTER CorsVaryHeaders
-                                     // which effectively means "JsonVaryHeaders goes around Gzipper"
-  lazy val common: List[EssentialFilter] =  ForceHttpResponseFilter :: JsonHeadersFilter :: Gzipper :: BackendHeaderFilter :: Nil
+  // NOTE - order is important here, Gzipper AFTER CorsVaryHeaders
+  // which effectively means "JsonVaryHeaders goes around Gzipper"
+  lazy val common: List[EssentialFilter] = List(
+    JsonVaryHeadersFilter,
+    Gzipper,
+    BackendHeaderFilter,
+    RequestLoggingFilter
+  )
 }

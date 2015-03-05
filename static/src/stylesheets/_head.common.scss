@@ -23,6 +23,7 @@
 @import 'base/_helpers';
 @import 'base/_faux-block-link';
 @import 'base/_lists';
+@import 'base/_inline-svgs';
 
 
 /* ==========================================================================
@@ -60,6 +61,7 @@
 @import 'module/_headers';
 @import 'module/nav/_has-localnav-overrides';
 @import 'module/nav/_navigation';
+@import 'module/_rounded-icon';
 
 
 /* ==========================================================================

@@ -1,6 +1,6 @@
 package controllers
 
-import com.gu.facia.client.models.CollectionConfig
+import com.gu.facia.client.models.CollectionConfigJson
 import common._
 import layout.{CollectionEssentials, FaciaContainer}
 import model._
@@ -12,10 +12,17 @@ import scala.concurrent.duration._
 
 object RelatedController extends Controller with Related with Logging with ExecutionContexts {
 
+  private val page = new Page(
+    "related-content",
+    "related-content",
+    "Related content",
+    "GFE:Related content"
+  )
+
   def renderHtml(path: String) = render(path)
   def render(path: String) = MemcachedAction { implicit request =>
     val edition = Edition(request)
-    val excludeTags = request.queryString.get("exclude-tag").getOrElse(Nil)
+    val excludeTags = request.queryString.getOrElse("exclude-tag", Nil)
     related(edition, path, excludeTags) map {
       case Nil => JsonNotFound()
       case trails => renderRelated(trails.sortBy(-_.webPublicationDate.getMillis))
@@ -26,22 +33,18 @@ object RelatedController extends Controller with Related with Logging with Execu
     val dataId: String = "related content"
     val displayName = Some(dataId)
     val properties = FrontProperties.empty
-    val config = CollectionConfig.withDefaults(displayName = displayName)
+    val config = CollectionConfigJson.withDefaults(displayName = displayName)
 
-    val html = views.html.fragments.containers.facia_cards.container(
-      FaciaContainer(
-        1,
-        Fixed(FixedContainers.fixedMediumFastXII),
-        CollectionConfigWithId(dataId, config),
-        CollectionEssentials(trails take 8, displayName, None, None, None)
-      ),
-      properties
-    )(request)
+    val container: FaciaContainer = FaciaContainer(1,
+      Fixed(FixedContainers.fixedMediumFastXII),
+      CollectionConfigWithId(dataId, config),
+      CollectionEssentials(trails take 8, Nil, displayName, None, None, None)
+    ).withTimeStamps
 
     if (request.isJson) {
-      JsonComponent("html" -> html)
+      JsonComponent("html" -> views.html.fragments.containers.facia_cards.container(container, properties))
     } else {
-      Ok(html)
+      Ok(views.html.relatedContent(page, container.items))
     }
   }
 }

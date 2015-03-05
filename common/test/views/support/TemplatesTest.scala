@@ -1,14 +1,14 @@
 package views.support
 
-import com.gu.contentapi.client.model.{Tag => ApiTag, Element => ApiElement, Asset => ApiAsset, Content => ApiContent}
-import model._
-import org.joda.time.DateTime
-import org.scalatest.{ Matchers, FlatSpec }
-import xml.XML
+import com.gu.contentapi.client.model.{Asset => ApiAsset, Content => ApiContent, Element => ApiElement, Tag => ApiTag}
+import common.Edition
 import common.editions.Uk
 import conf.Configuration
-import org.jsoup.Jsoup
+import model._
+import org.scalatest.{FlatSpec, Matchers}
 import play.api.test.FakeRequest
+
+import scala.xml.XML
 
 class TemplatesTest extends FlatSpec with Matchers {
 
@@ -27,9 +27,9 @@ class TemplatesTest extends FlatSpec with Matchers {
         Tag(tag(id = "tone/foo", tagType = "tone")),
         Tag(tag(id = "type/video", tagType = "type"))
       )
-      override def isSponsored: Boolean = false
-      override def isFoundationSupported: Boolean = false
-      override def isAdvertisementFeature: Boolean = false
+      override def isSponsored(maybeEdition:Option[Edition]): Boolean = false
+      override val isFoundationSupported: Boolean = false
+      override val isAdvertisementFeature: Boolean = false
     }
     tags.typeOrTone.get.id should be("type/video")
   }
@@ -40,20 +40,11 @@ class TemplatesTest extends FlatSpec with Matchers {
         Tag(tag(id = "type/article", tagType = "type")),
         Tag(tag(id = "tone/foo", tagType = "tone"))
       )
-      override def isSponsored: Boolean = false
-      override def isFoundationSupported: Boolean = false
-      override def isAdvertisementFeature: Boolean = false
+      override def isSponsored(maybeEdition:Option[Edition]): Boolean = false
+      override val isFoundationSupported: Boolean = false
+      override val isAdvertisementFeature: Boolean = false
     }
     tags.typeOrTone.get.id should be("tone/foo")
-  }
-
-  "Inflector" should "singularize tag name" in {
-    Tag(tag("Minute by minutes")).singularName should be("Minute by minute")
-    Tag(tag("News")).singularName should be("News")
-  }
-
-  it should "pluralize tag name" in {
-    Tag(tag("Article")).pluralName should be("Articles")
   }
 
   "PictureCleaner" should "correctly format inline pictures" in {
@@ -110,36 +101,6 @@ class TemplatesTest extends FlatSpec with Matchers {
     (link \ "@href").text should be (s"${Configuration.site.host}/section/2011/jan/01/words-for-url")
 
   }
-
-  "InBodyLinkCleanerForR1" should "clean links" in {
-
-    // i. www
-    val r1BodyText = """
-      <p> foo <a href="/Guardian/path/to/article">foo</a> foo</p>
-    """
-    val body = XML.loadString(withJsoup(r1BodyText)(InBodyLinkCleanerForR1("")).body.trim)
-    val link = (body \\ "a").head
-    (link \ "@href").text should be (s"/path/to/article")
-
-    // ii. old subdomains
-    val absoluteUrls = Map(
-        "/Arts/path/to/something" -> "/arts/path/to/something",
-        "/Education/path/to/something" -> "/education/path/to/something",
-        "/Guardian/path/to/something" -> "/path/to/something",
-        "/Club/path/to/something" -> "/Club/path/to/something" // unchanged
-    )
-
-    for ((key, value) <- absoluteUrls) {
-        val bodyAbsolute = XML.loadString(withJsoup(s"""<a href="${key}">foo</a>""")(InBodyLinkCleanerForR1("")).body.trim)
-        (bodyAbsolute \ "@href").text should be (value)
-    }
-
-    // iii. relative to the old subdomain
-    val bodyAbsolute = XML.loadString(withJsoup(s"""<a href="/path/to/foo">foo</a>""")(InBodyLinkCleanerForR1("/arts")).body.trim)
-    (bodyAbsolute \ "@href").text should be ("/arts/path/to/foo")
-
-  }
-
 
   "BlockCleaner" should "insert block ids in minute by minute content" in {
 

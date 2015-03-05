@@ -149,12 +149,12 @@ import collection.JavaConversions._
       }
     }
 
-    scenario("Poster image on embedded video", ArticleComponents) {
-      goTo("/world/2013/sep/25/kenya-mall-attack-bodies") { browser =>
-        import browser._
-        findFirst("video").getAttribute("poster") should endWith("Westgate-shopping-centre--016.jpg")
-      }
-    }
+    // scenario("Poster image on embedded video", ArticleComponents) {
+    //   goTo("/world/2013/sep/25/kenya-mall-attack-bodies") { browser =>
+    //     import browser._
+    //     findFirst("video").getAttribute("poster") should endWith("Westgate-shopping-centre--016.jpg")
+    //   }
+    // }
 
     scenario("Display the article publication date", ArticleComponents) {
 
@@ -163,7 +163,7 @@ import collection.JavaConversions._
         import browser._
 
         Then("I should see the publication date of the article")
-        findFirst(".content__dateline").getText should be("Monday 6 August 2012 20.30 BST")
+        findFirst(".content__dateline-wpd").getText should be("Monday 6 August 2012 20.30 BST")
         findFirst("time").getAttribute("datetime") should be("2012-08-06T20:30:00+0100")
       }
     }
@@ -343,11 +343,11 @@ import collection.JavaConversions._
 
         And("the placeholder has the correct data attributes")
         adPlaceholder.getAttribute("data-name") should be("top-above-nav")
-        adPlaceholder.getAttribute("data-mobile") should be("1,1|300,1|88,70|728,90")
-        adPlaceholder.getAttribute("data-desktop") should be("1,1|300,1|88,70|728,90|940,230|900,250|970,250")
+        adPlaceholder.getAttribute("data-mobile") should be("1,1|88,70|728,90")
+        adPlaceholder.getAttribute("data-desktop") should be("1,1|88,70|728,90|940,230|900,250|970,250")
 
         And("the placeholder has the correct class name")
-        adPlaceholder.getAttribute("class") should be("ad-slot ad-slot--dfp ad-slot--top-above-nav ad-slot--top-banner-ad")
+        adPlaceholder.getAttribute("class") should be("js-ad-slot ad-slot ad-slot--dfp ad-slot--top-above-nav ad-slot--top-banner-ad")
 
         And("the placeholder has the correct analytics name")
         adPlaceholder.getAttribute("data-link-name") should be("ad slot top-above-nav")
@@ -355,29 +355,6 @@ import collection.JavaConversions._
 
       // put it back in the state we found it
       StandardAdvertsSwitch.switchOff()
-    }
-
-    scenario("Navigate to the classic site (UK edition - www.guardian.co.uk)") {
-      Given("I'm on article entitled 'We must capitalise on a low-carbon future'")
-      And("I am using the UK edition")
-      goTo("/environment/2012/feb/22/capitalise-low-carbon-future") { browser =>
-        import browser._
-
-        Then("I should see a link to the corresponding classic article")
-        findFirst(".js-main-site-link").getAttribute("href") should be(classicVersionLink("/environment/2012/feb/22/capitalise-low-carbon-future"))
-      }
-    }
-
-    scenario("Navigate to the classic site (US edition - www.guardiannews.com)") {
-      Given("I'm on article entitled 'We must capitalise on a low-carbon future'")
-      And("I am using the US edition")
-      US("/environment/2012/feb/22/capitalise-low-carbon-future") { browser =>
-        import browser._
-
-        Then("I should see a link to the corresponding classic article")
-        findFirst(".js-main-site-link").getAttribute("href") should
-          be(classicVersionLink("/environment/2012/feb/22/capitalise-low-carbon-future"))
-      }
     }
 
     scenario("Direct link to paragraph") {
@@ -401,16 +378,16 @@ import collection.JavaConversions._
       }
     }
 
-    scenario("Hide main picture if video is at start of article") {
-      Given("I am on an article with a video at the start of the body")
-      goTo("/society/2013/mar/26/failing-hospitals-nhs-jeremy-hunt") { browser =>
-        import browser._
-        Then("the main picture should be hidden")
-        $("[itemprop='associatedMedia primaryImageOfPage']") should have size 0
-
-        findFirst("video").getAttribute("poster") should endWith("/2013/3/26/1364309869688/Jeremy-Hunt-announcing-ch-016.jpg")
-      }
-    }
+//    scenario("Hide main picture if video is at start of article") {
+//      Given("I am on an article with a video at the start of the body")
+//      goTo("/society/2013/mar/26/failing-hospitals-nhs-jeremy-hunt") { browser =>
+//        import browser._
+//        Then("the main picture should be hidden")
+//        $("[itemprop='associatedMedia primaryImageOfPage']") should have size 0
+//
+//        findFirst("video").getAttribute("poster") should endWith("/2013/3/26/1364309869688/Jeremy-Hunt-announcing-ch-016.jpg")
+//      }
+//    }
 
     scenario("SEO Thumbnail") {
       goTo("/society/2013/mar/26/failing-hospitals-nhs-jeremy-hunt") { browser =>
@@ -422,18 +399,18 @@ import collection.JavaConversions._
       }
     }
 
-    scenario("Show main picture if video is further down article") {
-      Given("I am on an article with a video further down inside the body")
-      goTo("/music/musicblog/2013/mar/28/glastonbury-2013-lineup-everybody-happy") { browser =>
-        import browser._
-
-        Then("the main picture should be shown")
-        $("[itemprop='contentURL representativeOfPage']") should have size 1
-
-        And("the embedded video should not have a poster when there are no images in the video element")
-        findFirst("video").getAttribute("poster") should be("")
-      }
-    }
+//    scenario("Show main picture if video is further down article") {
+//      Given("I am on an article with a video further down inside the body")
+//      goTo("/music/musicblog/2013/mar/28/glastonbury-2013-lineup-everybody-happy") { browser =>
+//        import browser._
+//
+//        Then("the main picture should be shown")
+//        $("[itemprop='contentURL representativeOfPage']") should have size 1
+//
+//        And("the embedded video should not have a poster when there are no images in the video element")
+//        findFirst("video").getAttribute("poster") should be("")
+//      }
+//    }
 
     scenario("Show embedded video in live blogs") {
       Given("I am on a live blog with an embedded video")
@@ -448,15 +425,6 @@ import collection.JavaConversions._
       goTo("/football/live/2014/aug/03/arsenal-v-monaco-emirates-cup-live") { browser =>
         withClue("There should be no 'classic version' link") {
           browser.find(".js-main-site-link") should be(empty)
-        }
-      }
-    }
-
-    scenario("Show 'classic' link on non-Football live blogs") {
-      goTo("/business/blog/live/2014/aug/20/bank-of-england-minutes-to-shed-light-on-interest-rate-rises-business-live") { browser =>
-        import browser._
-        withClue("There should be a 'classic version' link") {
-          browser.find(".js-main-site-link") should not be empty
         }
       }
     }
@@ -534,6 +502,18 @@ import collection.JavaConversions._
       }
     }
 
+    scenario("Progressive related content") {
+      Given("I vist a Guardian article page")
+      goTo("/technology/askjack/2015/feb/05/how-should-i-upgrade-my-old-hi-fi-in-a-digital-world") { browser =>
+        import browser._
+
+        Then("I should see a link to related to related content")
+        val relatedLink = findFirst("[data-test-id=related-content]").findFirst("a")
+        relatedLink.getAttribute("href") should endWith ("/related/technology/askjack/2015/feb/05/how-should-i-upgrade-my-old-hi-fi-in-a-digital-world")
+        relatedLink.getText() should be ("related content >")
+      }
+    }
+
     scenario("Story package with a gallery trail") {
 
       Given("I'm on an article that has a gallery in its story package")
@@ -563,7 +543,7 @@ import collection.JavaConversions._
         import browser._
 
         Then("I should see links to keywords")
-        $(".keyword-list a").size should be(17)
+        $(".keyword-list a").size should be(16)
       }
     }
 
@@ -609,25 +589,6 @@ import collection.JavaConversions._
       }
     }
 
-
-    scenario("'Classic' link") {
-      Given("I am on a piece of content that has an R2 version")
-      goTo("/world/2014/mar/24/egypt-death-sentence-529-morsi-supporters") { browser =>
-        import browser._
-        Then("I should see a 'Classic' link")
-        $(".js-main-site-link").isEmpty should be(false)
-      }
-    }
-
-    scenario("Remove 'Classic' link") {
-      Given("I am on a piece of content that is only Next Gen")
-      goTo("/science/antarctica-live/2014/feb/28/-sp-rescue-from-antarctica") { browser =>
-        import browser._
-        Then("I should not see a 'Classic' link")
-        $(".js-main-site-link").isEmpty should be(true)
-      }
-    }
-
     scenario("Display breadcrumbs correctly") {
       Given("I am on a piece of content with a primary nav, secondary nav and a key woro")
       goTo("/books/2014/may/21/guardian-journalists-jonathan-freedland-ghaith-abdul-ahad-win-orwell-prize-journalism") { browser =>
@@ -649,7 +610,7 @@ import collection.JavaConversions._
         Then("I should see three breadcrumbs")
         $(".breadcrumb .signposting__item").size() should be(2)
 
-        val link = browser.find(".breadcrumb .signposting__item a", withText().contains("Comment"))
+        val link = browser.find(".breadcrumb .signposting__item a", withText().contains("Opinion"))
         link.length should be > 0
         val link2 = browser.find(".breadcrumb .signposting__item a", withText().contains("Heritage"))
         link2.length should be > 0

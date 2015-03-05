@@ -1,17 +1,16 @@
 package model
 
 import commercial.TravelOffersCacheJob
-import common.{AkkaAsync, Jobs}
+import common.{Logging, AkkaAsync, Jobs}
 import conf.Configuration
 import conf.Configuration.environment
-import conf.Switches.AdsStatusEmailDebugSwitch
 import football.feed.MatchDayRecorder
 import jobs._
 import play.api.GlobalSettings
 import services.EmailService
 import tools.{CloudWatch, LoadBalancer}
 
-trait AdminLifecycle extends GlobalSettings {
+trait AdminLifecycle extends GlobalSettings with Logging {
 
   lazy val adminPressJobStandardPushRateInMinutes: Int = Configuration.faciatool.adminPressJobStandardPushRateInMinutes
   lazy val adminPressJobHighPushRateInMinutes: Int = Configuration.faciatool.adminPressJobHighPushRateInMinutes
@@ -69,15 +68,18 @@ trait AdminLifecycle extends GlobalSettings {
     }
 
     if (environment.isProd) {
-      Jobs.schedule("AdsStatusEmailJob", "0 5 9 ? * MON-FRI") {
+      Jobs.schedule("AdsStatusEmailJob", "0 44 8 ? * MON-FRI") {
         AdsStatusEmailJob.run()
+      }
+      Jobs.schedule("ExpiringAdFeaturesEmailJob", "0 47 8 ? * MON-FRI") {
+        log.info(s"Starting ExpiringAdFeaturesEmailJob")
+        ExpiringAdFeaturesEmailJob.run()
       }
     }
 
-    Jobs.schedule("AdsStatusEmailDebugJob", "0 5/10 9-18 ? * MON-FRI") {
-      if (AdsStatusEmailDebugSwitch.isSwitchedOn) {
-        AdsStatusEmailJob.run()
-      }
+    Jobs.schedule("VideoEncodingsJob", "0 0/15 * * * ?") {
+      log.info("Starting VideoEncodingsJob")
+      VideoEncodingsJob.run()
     }
 
   }
@@ -97,7 +99,8 @@ trait AdminLifecycle extends GlobalSettings {
     Jobs.deschedule("FrontPressJobStandardFrequency")
     Jobs.deschedule("FrontPressJobLowFrequency")
     Jobs.deschedule("AdsStatusEmailJob")
-    Jobs.deschedule("AdsStatusEmailDebugJob")
+    Jobs.deschedule("ExpiringAdFeaturesEmailJob")
+    Jobs.deschedule("VideoEncodingsJob")
   }
 
   override def onStart(app: play.api.Application) {
@@ -110,6 +113,7 @@ trait AdminLifecycle extends GlobalSettings {
       TravelOffersCacheJob.run()
       OmnitureReportJob.run()
       SentryReportJob.run()
+      VideoEncodingsJob.run()
     }
   }
 

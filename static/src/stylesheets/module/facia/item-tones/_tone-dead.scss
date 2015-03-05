@@ -1,15 +1,33 @@
 .tone-dead--item {
-    &.fc-item {
+    &.fc-item,
+    &.flyer {
         background-color: colour(neutral-7);
     }
 
-    .fc-item__container:before {
+    .u-faux-block-link--hover {
+        background-color: colour(neutral-6);
+    }
+
+    .fc-item__container:before,
+    .flyer__container:before {
         background-color: colour(live-default);
     }
 
     .fc-item__kicker,
     .fc-item__byline {
         color: colour(live-accent);
+    }
+
+    .fc-item__kicker--dreamsnap {
+        background-color: mix(#000000, colour(neutral-7), 10%);
+    }
+
+    .flyer__read-more-text {
+        color: colour(neutral-2);
+    }
+
+    .flyer__arrow-icon {
+        fill: colour(neutral-2);
     }
 }
 

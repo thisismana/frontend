@@ -14,7 +14,7 @@
            data-comment-id="@comment.id"
            data-comment-author="@comment.profile.displayName"
            data-comment-replies="@comment.responseCount"
-           data-comment-timestamp="@comment.date"           
+           data-comment-timestamp="@comment.date"
            data-comment-author-id="@comment.profile.userId"
            data-comment-highlighted="@comment.isHighlighted"
            itemscope itemtype="http://schema.org/Comment">
@@ -38,24 +38,26 @@
 
                 @comment.responseTo.map{ r =>
                     <span class="i i-reply-grey"></span>
-                    <a href="#comment-@r.commentId">
+                    <a href="#comment-@r.commentId" class="js-discussion-author-link">
                         <span class="d-comment__reply-to-author">@r.displayName</span>
                     </a>
                 }
                 <div class="d-comment__timestamp">
-                    <a href="@Configuration.discussion.url/comment-permalink/@comment.id" class="d-comment__timestamp">
-                        <time class="js-timestamp" itemprop="dateCreated" datetime="@comment.date.toString("yyyy-MM-dd'T'HH:mm:ss'Z'")"
-                                    data-timestamp="@comment.date.getMillis" data-relativeformat="med" title="Permalink to this comment">
-                            @Format(comment.date, "d MMM y HH:mm")</time><i class="i i-comment-anchor"></i>
+                    <a href="@Configuration.discussion.url/comment-permalink/@comment.id" class="d-comment__timestamp block-time">
+                        <time class="js-timestamp" itemprop="dateCreated"
+                            datetime="@comment.date.toString("yyyy-MM-dd'T'HH:mm:ss'Z'")"
+                            data-timestamp="@comment.date.getMillis" data-relativeformat="med"
+                            title="Permalink to this comment (@Format(comment.date, "d MMM y HH:mm"))">@Format(comment.date, "d MMM y HH:mm")</time>
+                        <i class="i i-comment-anchor"></i>
                     </a>
                 </div>
-                @if(comment.profile.isStaff){
-                    <span class="d-comment__author-label">Staff</span>
-                }else { @if(comment.profile.isContributor) {
-                    <span class="d-comment__author-label">Contributor</span>}
-                }
+
+                @fragments.commentBadges(comment)
+
                 @if(comment.isHighlighted && !comment.isBlocked) {
-                    <div class="d-comment__pick" title="Guardian pick">Guardian Pick</div>
+                    <div class="d-comment__pick" title="Guardian pick">
+                        @fragments.inlineSvg("marque-36", "icon", Seq("d-comment__gu-icon")) Guardian Pick
+                    </div>
                 }
             </div>
         </div>

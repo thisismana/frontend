@@ -1,7 +1,6 @@
 define([
     'bonzo',
     'qwery',
-    'lodash/functions/once',
     'common/utils/$',
     'common/utils/config',
     'common/utils/template',
@@ -11,7 +10,6 @@ define([
 ], function (
     bonzo,
     qwery,
-    once,
     $,
     config,
     template,
@@ -21,17 +19,17 @@ define([
 ) {
 
     var badgesConfig = {
-            sponsored: {
+            sponsoredfeatures: {
                 count:      0,
                 header:     'Sponsored by:',
                 namePrefix: 'sp'
             },
-            'advertisement-feature': {
+            'advertisement-features': {
                 count:      0,
                 header:     'Brought to you by:',
                 namePrefix: 'ad'
             },
-            'foundation-supported': {
+            'foundation-features': {
                 count:      0,
                 header:     'Supported by:',
                 namePrefix: 'fo'
@@ -53,8 +51,12 @@ define([
                 slotTarget  = badgeConfig.namePrefix + 'badge',
                 name        = slotTarget + (++badgeConfig.count),
                 $adSlot     = bonzo(createAdSlot(
-                    name, ['paid-for-badge', 'paid-for-badge--front'], opts.keywords, slotTarget
-                ));
+                                name,
+                                ['paid-for-badge', 'paid-for-badge--front'],
+                                opts.series,
+                                opts.keywords,
+                                slotTarget
+                              ));
 
             addPreBadge($adSlot, badgeConfig.header, opts.sponsor);
             $('.js-container__header', container)
@@ -89,6 +91,7 @@ define([
                         $container.data('sponsorship'),
                         {
                             sponsor:  $container.data('sponsor'),
+                            series:   $container.data('series'),
                             keywords: $container.data('keywords')
                         }
                     );
@@ -97,7 +100,7 @@ define([
         },
         badges = {
 
-            init: once(init),
+            init: init,
 
             // add a badge to a container (if appropriate)
             add: function (container) {
@@ -113,11 +116,19 @@ define([
                         $container.data('sponsorship'),
                         {
                             sponsor:  $container.data('sponsor'),
+                            series:   $container.data('series'),
                             keywords: $container.data('keywords')
                         }
                     );
                     // add slot to dfp
                     dfp.addSlot($adSlot);
+                }
+            },
+
+            // for testing
+            reset: function () {
+                for (var type in badgesConfig) {
+                    badgesConfig[type].count = 0;
                 }
             }
 

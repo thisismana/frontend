@@ -1,5 +1,6 @@
 package common.editions
 
+import common.editions.Uk._
 import org.joda.time.DateTimeZone
 import common._
 import contentapi.QueryDefaults
@@ -18,25 +19,35 @@ object Au extends Edition(
 
   implicit val AU = Au
 
-  val cultureLocalNav: Seq[SectionLink] = Seq(film, music, books, televisionAndRadio, artanddesign, stage, classicalMusic)
+  val cultureLocalNav: Seq[SectionLink] = Seq(
+    film,
+    music,
+    games,
+    books,
+    televisionAndRadio,
+    artanddesign,
+    stage,
+    classicalMusic
+  )
 
   override val navigation: Seq[NavItem] = {
     Seq(
       NavItem(home),
       NavItem(australia),
       NavItem(world, Seq(uk, us, asia, europeNews, americas, africa, middleEast)),
-      NavItem(cif),
+      NavItem(opinion),
       NavItem(sport, Seq(australiaSport, football, cricket, rugbyunion, rugbyLeague, tennis, cycling, boxing, afl, nrl)),
       NavItem(football, aLeague :: footballNav.toList),
-      NavItem(technology, Seq(games)),
+      NavItem(technology),
       NavItem(culture, cultureLocalNav),
       NavItem(lifeandstyle, Seq(foodanddrink, healthandwellbeing, loveAndSex, family, women)),
       NavItem(fashion),
       NavItem(economy, Seq(markets, companies, money)),
       NavItem(travel, Seq(australasiaTravel, asiaTravel, uktravel, europetravel, usTravel)),
-      NavItem(science),
-      NavItem(environment, Seq(cities, globalDevelopment)),
       NavItem(media),
+      NavItem(environment, Seq(cities, globalDevelopment)),
+      NavItem(science),
+      NavItem(crosswords),
       NavItem(video)
     )
   }
@@ -45,16 +56,16 @@ object Au extends Edition(
     NavItem(home),
     NavItem(australia),
     NavItem(world, Seq(uk, us, asia, europeNews, americas, africa, middleEast)),
-    NavItem(cif),
+    NavItem(opinion),
     NavItem(sport, Seq(australiaSport, football, cricket, rugbyunion, rugbyLeague , tennis, cycling, boxing, afl, nrl)),
     NavItem(football, aLeague :: footballNav.toList),
-    NavItem(technology, Seq(games)),
+    NavItem(technology),
     NavItem(culture, cultureLocalNav),
     NavItem(lifeandstyle, Seq(foodanddrink, healthandwellbeing, loveAndSex, family, women)),
     NavItem(fashion),
     NavItem(economy, Seq(markets, companies, money)),
     NavItem(travel, Seq(australasiaTravel, asiaTravel, uktravel, europetravel, usTravel)),
-    NavItem(science),
+    NavItem(media),
     NavItem(environment, Seq(cities, globalDevelopment))
   )
 }

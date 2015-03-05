@@ -19,23 +19,34 @@
         }
     }
 
-    .fc-item__container:before {
+    .fc-item__container:before,
+    .flyer__container:before, {
         background-color: colour(live-mute);
     }
 
     .fc-item__kicker,
     .fc-item__byline,
-    .fc-item__meta {
+    .fc-item__meta,
+    .flyer__read-more-text {
         color: colour(live-mute);
     }
 
+    .flyer__arrow-icon {
+        fill: colour(live-mute);
+    }
+
     .fc-item__kicker:after,
+    .flyer__kicker:after,
     .fc-sublink__kicker:after {
-        color: fade-out($c-headline, .8);
+        color: mix($c-headline, colour(live-default), 20%);
+    }
+
+    .fc-item__kicker--dreamsnap {
+        background-color: mix(#000000, colour(live-default), 10%);
     }
 
     .fc-item__standfirst {
-        color: fade-out($c-headline, .2);
+        color: mix($c-headline, colour(live-default), 80%);
     }
 
     .fc-item__live-indicator,
@@ -45,7 +56,7 @@
     }
 
     .fc-sublink__title:before {
-        border-color: fade-out($c-headline, .8);
+        border-color: mix($c-headline, colour(live-default), 20%);
     }
 }
 

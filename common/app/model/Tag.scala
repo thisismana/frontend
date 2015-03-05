@@ -3,6 +3,7 @@ package model
 import com.gu.contentapi.client.model.{Tag => ApiTag, Podcast}
 import common.{Pagination, Reference}
 import conf.Configuration
+import contentapi.SectionTagLookUp
 import play.api.libs.json.{JsArray, JsString, JsValue}
 import views.support.{Contributor, ImgSrc, Item140, Item360}
 
@@ -19,6 +20,8 @@ case class Tag(private val delegate: ApiTag, override val pagination: Option[Pag
   lazy val webTitle: String = delegate.webTitle
   lazy val sectionName: String = delegate.sectionName.getOrElse("global")
   override lazy val description = delegate.description
+  lazy val twitterHandle: Option[String] = delegate.twitterHandle
+  lazy val emailAddress: Option[String] = delegate.emailAddress
 
   override lazy val url: String = SupportedUrl(delegate)
 
@@ -40,10 +43,10 @@ case class Tag(private val delegate: ApiTag, override val pagination: Option[Pag
   override lazy val isFront = true
 
   lazy val isSectionTag: Boolean = {
-    val idParts = id.split("/")
-    // a section tag id looks like     science/science
-    !idParts.exists(_ != section)
+    SectionTagLookUp.sectionId(id).exists(_ == section)
   }
+
+  lazy val showSeriesInMeta = id != "childrens-books-site/childrens-books-site"
 
   lazy val isKeyword = tagType == "keyword"
 
@@ -58,6 +61,16 @@ case class Tag(private val delegate: ApiTag, override val pagination: Option[Pag
     .map(teamId => s"${Configuration.staticSport.path}/football/crests/120/$teamId.png")
 
   lazy val tagWithoutSection = id.split("/")(1) // used for football nav
+
+  lazy val richLinkId: Option[String] =
+    delegate.references.find(_.`type` == "rich-link")
+      .map(_.id.stripPrefix("rich-link/"))
+      .filter(_.matches("""https?://www\.theguardian\.com/.*"""))
+
+  lazy val openModuleId: Option[String] =
+    delegate.references.find(_.`type` == "open-module")
+      .map(_.id.stripPrefix("open-module/"))
+      .filter(_.matches("""https?://open-module\.appspot\.com/view\?id=\d+"""))
 
   override lazy val analyticsName = s"GFE:$section:$name"
 

@@ -34,6 +34,7 @@ object Global extends GlobalSettings
     ContentApiMetrics.ContentApiJsonMappingExceptionMetric,
     ContentApiMetrics.ContentApiCircuitBreakerRequestsMetric,
     ContentApiMetrics.ContentApiCircuitBreakerOnOpen,
+    ContentApiMetrics.ContentApiErrorMetric,
     FaciaToolMetrics.InvalidContentExceptionMetric,
     S3Metrics.S3ClientExceptionsMetric,
     S3Metrics.S3AuthorizationError,
@@ -55,6 +56,7 @@ object Global extends GlobalSettings
   }
 
   override def onStop(app: play.api.Application) {
+    ToolPressQueueWorker.stop()
     super.onStop(app)
   }
 }

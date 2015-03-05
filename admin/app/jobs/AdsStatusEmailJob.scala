@@ -1,10 +1,8 @@
 package jobs
 
 import common.Logging
-import conf.Configuration
 import conf.Configuration.commercial._
-import conf.Switches.AdsStatusEmailDebugSwitch
-import dfp.{PageSkinSponsorship, Sponsorship}
+import dfp.{AdvertisementFeature, GuLineItem, PageSkinSponsorship}
 import services.EmailService
 import tools.Store
 
@@ -15,32 +13,62 @@ object AdsStatusEmailJob extends Logging {
   def run(): Unit = {
     log.info("Starting AdsStatusEmailJob")
 
-    log.info(s"stage: ${Configuration.environment.stage}")
-    log.info(s"isProd: ${Configuration.environment.isProd}")
-
     for {
-      from <- adTechTeam
-      to <- adOpsTeam
-      cc <- adTechTeam
-    } yield {
-      if (AdsStatusEmailDebugSwitch.isSwitchedOn) {
-        EmailService.send(from, to = Seq(from), subject = "SES Test", textBody = "Please ignore")
-      } else {
-        EmailService.send(from, Seq(to), Seq(cc), subject, textBody)
-      }
+      adTech <- adTechTeam
+      adOps <- adOpsTeam
+      adOpsUs <- adOpsUsTeam
+      adOpsAu <- adOpsAuTeam
+    } {
+      EmailService.send(
+        from = adTech,
+        to = Seq(adOps, adOpsUs, adOpsAu),
+        cc = Seq(adTech),
+        subject = subject,
+        htmlBody = Some(htmlBody))
     }
   }
 
-  private def textBody: String = {
-    views.html.commercial.email.adsStatus(pageskinsWithoutEdition, geotargetedAdFeatures).body
+  private def htmlBody: String = {
+    val paidForTags = Store.getDfpPaidForTags().paidForTags filterNot {
+      _.lineItems.forall(_.targeting.hasAdTestTargetting)
+    }
+
+    val pageskinsWithoutEdition: Seq[PageSkinSponsorship] = {
+      Store.getDfpPageSkinnedAdUnits().deliverableSponsorships.filter(_.editions.isEmpty)
+    }
+
+    val geotargetedAdFeatures: Seq[GuLineItem] = {
+      val adFeatureTags = paidForTags filter (_.paidForType == AdvertisementFeature)
+      val allAdFeatures = adFeatureTags flatMap (_.lineItems)
+      allAdFeatures filter (_.targeting.geoTargetsIncluded.nonEmpty) sortBy (_.id)
+    }
+
+    val sponsorshipsWithoutSponsors: Seq[GuLineItem] = {
+      val lineItems = paidForTags flatMap (_.lineItems)
+      lineItems filter (_.sponsor.isEmpty) sortBy (_.id)
+    }
+
+    // Will revisit this when glabs have fixed their tagging
+    val noSuchTargetedTags: Seq[GuLineItem] = Nil
+
+    views.html.commercial.email.adsStatus(AdStatusReport(
+      pageskinsWithoutEdition,
+      geotargetedAdFeatures,
+      sponsorshipsWithoutSponsors,
+      noSuchTargetedTags
+    )).body.trim()
   }
 
-  private def pageskinsWithoutEdition: Seq[PageSkinSponsorship] = {
-    Store.getDfpPageSkinnedAdUnits().deliverableSponsorships.filter(_.editions.isEmpty)
-  }
+}
 
-  private def geotargetedAdFeatures: Seq[Sponsorship] = {
-    Store.getDfpAdFeatureTags().sponsorships.filter(_.countries.nonEmpty)
-  }
+case class AdStatusReport(pageskinsWithoutEditions: Seq[dfp.PageSkinSponsorship],
+                          geotargetedAdFeatures: Seq[dfp.GuLineItem],
+                          sponsorshipsWithoutSponsors: Seq[dfp.GuLineItem],
+                          noSuchTargetedTags: Seq[dfp.GuLineItem]) {
 
+  val isEmpty =
+    pageskinsWithoutEditions.isEmpty &&
+      geotargetedAdFeatures.isEmpty &&
+      sponsorshipsWithoutSponsors.isEmpty &&
+      noSuchTargetedTags.isEmpty
 }

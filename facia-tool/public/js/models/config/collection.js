@@ -1,6 +1,6 @@
-/* global _: true */
 define([
     'knockout',
+    'underscore',
     'config',
     'models/config/persistence',
     'modules/vars',
@@ -9,10 +9,12 @@ define([
     'utils/as-observable-props',
     'utils/populate-observables',
     'utils/full-trim',
+    'utils/mediator',
     'utils/url-abs-path',
     'utils/identity'
 ], function(
     ko,
+    _,
     pageConfig,
     persistence,
     vars,
@@ -21,6 +23,7 @@ define([
     asObservableProps,
     populateObservables,
     fullTrim,
+    mediator,
     urlAbsPath,
     identity
 ) {
@@ -46,14 +49,23 @@ define([
             'hideKickers',
             'showDateHeader',
             'showLatestUpdate',
-            'apiQuery']);
+            'excludeFromRss',
+            'apiQuery',
+            'importance']);
 
         populateObservables(this.meta, opts);
+
+        this.props = {
+            optionsImportance: [
+                'critical', 'important'
+            ]
+        };
 
         this.state = asObservableProps([
             'isOpen',
             'isOpenTypePicker',
             'underDrag',
+            'underControlDrag',
             'apiQueryStatus']);
 
         this.state.withinPriority = ko.computed(function() {
@@ -64,7 +76,7 @@ define([
             var containerId = this.meta.type();
 
             if (/^(fixed|dynamic)\//.test(containerId)) {
-                return "/thumbnails/" + containerId + ".svg";
+                return '/thumbnails/' + containerId + '.svg';
             } else {
                 return null;
             }
@@ -185,6 +197,17 @@ define([
                 self.capiResults(results || []);
                 self.state.apiQueryStatus(results && results.length ? 'valid' : 'invalid');
             }
+        });
+    };
+
+    Collection.prototype.drop = function (source, targetGroup) {
+        mediator.emit('collection:updates', {
+            sourceItem: source.sourceItem,
+            sourceGroup: source.sourceGroup,
+            targetItem: this,
+            targetGroup: targetGroup,
+            isAfter: false,
+            mediaItem: null
         });
     };
 

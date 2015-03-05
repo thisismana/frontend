@@ -1,15 +1,17 @@
 @(page: InteractivePage)(implicit request: RequestHeader)
-@import conf.Switches.DiscussionSwitch
+@import common.Edition
 @import views.support.TrailCssClasses.articleToneClass
 
 @defining(page.interactive) { interactive =>
 <div class="l-side-margins">
-    <article class="content content--interactive tonal tonal--@articleToneClass(interactive) @interactive match {
-            case a if a.isAdvertisementFeature => {content--advertisement-feature}
-            case s if s.isSponsored => {content--sponsored}
-            case s if s.isFoundationSupported => {content--foundation-supported}
-            case _ => { }
-        }"
+    <article class="@RenderClasses(
+            Map(
+                "content--advertisement-feature" -> interactive.isAdvertisementFeature,
+                "content--sponsored" -> interactive.isSponsored(Some(Edition(request))),
+                "content--foundation-supported" -> interactive.isFoundationSupported
+            ),
+            "content", "content--interactive", "tonal", s"tonal--${articleToneClass(interactive)}"
+        )"
         itemprop="mainContentOfPage" itemscope itemtype="@interactive.schemaType" role="main">
 
         @fragments.headDefault(interactive, showBadge = true)

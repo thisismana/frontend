@@ -1,6 +1,6 @@
 package slices
 
-import com.gu.facia.client.models.CollectionConfig
+import com.gu.facia.client.models.{CollectionConfigJson => CollectionConfig}
 import common.Logging
 
 object Container extends Logging {
@@ -27,6 +27,11 @@ object Container extends Logging {
   def showToggle(container: Container) = container match {
     case NavList | NavMediaList => false
     case _ => true
+  }
+
+  def customClasses(container: Container) = container match {
+    case Fixed(fixedContainer) => fixedContainer.customCssClasses
+    case _ => Nil
   }
 }
 

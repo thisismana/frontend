@@ -54,14 +54,14 @@ define([
             '          data-action="off" data-link-name="autoupdate off" title="Turn auto update off">' +
             '    <span class="live-toggler__label">Auto update:</span>' +
             '    <span class="u-h">is</span>' +
-            '    <span class="live-toggle__value">On</span>' +
+            '    <span class="rounded-icon live-toggle__value">On</span>' +
             '    <span class="u-h">(turn off)</span>' +
             '  </button>' +
             '  <button class="u-button-reset live-toggler live-toggler--autoupdate live-toggler--off js-auto-update js-auto-update--off"' +
             '          data-action="on" data-link-name="autoupdate on" title="Turn auto update on">' +
             '    <span class="live-toggler__label">Auto update:</span>' +
             '    <span class="u-h">is</span>' +
-            '    <span class="live-toggle__value">Off</span>' +
+            '    <span class="rounded-icon live-toggle__value">Off</span>' +
             '    <span class="u-h">(turn on)</span>' +
             '  </button>';
 
@@ -93,7 +93,7 @@ define([
                 $attachTo.attr('data-last-updated', date);
                 twitter.enhanceTweets();
 
-                if (this.isUpdating) {
+                if (this.isUpdating && detect.pageVisible()) {
                     this.notificationBar.setState('hidden');
                     this.view.revealNewElements.call(this);
                 } else if (this.unreadBlocks > 0) {

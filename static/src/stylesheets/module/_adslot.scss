@@ -46,6 +46,7 @@
 /**
  * Banner ads
  */
+
 .top-banner-ad-container--mobile {
     background-color: #f0f0f0;
 }
@@ -54,11 +55,19 @@
     border-bottom: 2px solid colour(neutral-4);
     display: none;
 
-    @include mq(tablet) {
-        .js-on & {
-            display: block;
+    &.top-banner-ad-container--below-nav {
+        border-bottom-width: 1px;
+
+        .ad-slot--top-banner-ad {
+            width: 970px;
+            padding-left: 0;
+        }
+
+        .ad-slot__label {
+            width: 970px;
         }
     }
+
     .ad-slot__label {
         /* this is the minimum width of possible ads sizes */
         width: 728px;
@@ -75,6 +84,20 @@
         -webkit-transform: translateZ(0);
         transform: translateZ(0);
         @include transition(height 1s cubic-bezier(0, 0, 0, .985));
+    }
+}
+.top-banner-ad-container--above-nav {
+    @include mq(tablet) {
+        .js-on & {
+            display: block;
+        }
+    }
+}
+.top-banner-ad-container--below-nav {
+    @include mq(desktop) {
+        .js-on & {
+            display: block;
+        }
     }
 }
 .ad-slot--top-banner-ad {
@@ -99,6 +122,14 @@
         min-height: 90 + ($gs-row-height / 2);
         padding-bottom: $gs-row-height / 2;
 
+        .ad-below-nav & {
+            min-height: 0;
+            padding-bottom: 0;
+
+            > div:last-of-type {
+                margin-bottom: $gs-row-height / 2;
+            }
+        }
         @include mq(tablet) {
             .js-on & {
                 display: block;
@@ -119,6 +150,10 @@
             }
         }
     }
+}
+/* horrible, but to centre align new doubleclick studio ads */
+.ad-slot--top > div > div {
+    margin: 0 auto;
 }
 
 /**
@@ -142,6 +177,14 @@
     }
     .ad-slot__label {
         background-color: transparent;
+    }
+}
+.ad-slot--gallery-inline {
+    @include mq(mobileLandscape) {
+        width: 300px;
+    }
+    @include mq(tablet) {
+        width: auto;
     }
 }
 .ad-slot--inline,
@@ -173,9 +216,13 @@
 .ad-slot--gallery-inline,
 .ad-slot--liveblog-inline {
     @include mq(tablet) {
-        margin-top: $gs-baseline*2;
-        margin-bottom: $gs-baseline*2;
         padding-bottom: $gs-baseline*2;
+
+        & > div:not(.ad-slot__label) {
+            width: 300px;
+            margin-left: auto;
+            margin-right: auto;
+        }
     }
 }
 .ad-slot--liveblog-inline {
@@ -203,15 +250,6 @@
     overflow: hidden;
     border-top: 1px solid colour(neutral-5);
     padding-top: $gs-baseline/2;
-
-    .ad-slot--gallery-inline &,
-    .ad-slot--liveblog-inline & {
-        @include mq(tablet) {
-            width: 300px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-    }
 }
 .ad-slot--sponsored__article {
     text-align: left;
@@ -255,10 +293,8 @@
  */
 .ad-slot--commercial-component,
 .ad-slot--commercial-component-high {
-    min-height: 88px;
-
-    @include mq(wide) {
-        .has-page-skin & {
+    .has-page-skin & {
+        @include mq(wide) {
             margin-left: auto;
             margin-right: auto;
             width: gs-span(12) + ($gs-gutter*2);
@@ -290,6 +326,9 @@
         @include fs-textSans(1);
         color: colour(neutral-2);
     }
+    .ad-slot--paid-for-badge__help {
+        @include font-size(11, 14);
+    }
     .ad-slot--paid-for-badge__header {
         margin: 0;
         padding-top: $gs-baseline / 2;
@@ -318,17 +357,18 @@
 }
 .ad-slot--adbadge {
     .ad-slot--paid-for-badge__header,
-    .ad-slot--paid-for-badge__label,
     .ad-slot--paid-for-badge__help {
         color: colour(neutral-2-contrasted);
     }
 }
 .ad-slot--im {
     @include box-sizing(border-box);
-    padding-right: $gs-gutter;
-    width: 50%;
-    max-width: $left-column-wide + $gs-gutter;
+    max-width: 50%;
     float: left;
+
+    @include mq(mobileLandscape) {
+        max-width: $left-column-wide + $gs-gutter;
+    }
 }
 .ad-slot--fobadge.ad-slot--im {
     min-width: gs-span(2) + $gs-gutter;
@@ -340,21 +380,33 @@
     }
  }
 .ad-slot--paid-for-badge--article {
+    padding-bottom: $gs-baseline * 2;
     border-bottom: 1px dotted colour(neutral-5);
-    min-height: 135px;
 
     @include mq(leftCol) {
+        min-height: 0;
         border-bottom-width: 0;
         border-top: 1px dotted colour(neutral-5);
     }
-}
-.ad-slot--paid-for-badge--live-blog {
-    @include mq(desktop) {
-        padding-top: $gs-baseline*2;
+
+    @include mq(mobile, $until: leftCol) {
+        padding-bottom: $gs-baseline / 2;
+        .ad-slot--paid-for-badge__link {
+            margin-top: 6px;
+        }
+    }
+
+    .ad-slot--paid-for-badge__logo {
+        @include mq(mobile, $until: leftCol) {
+            max-height: 60px;
+        }
+    }
+    .content--media--video & {
+        min-height: 0;
     }
 }
 .ad-slot--paid-for-badge--interactive {
-    min-width: 140px;
+    width: 140px;
     min-height: 135px;
     border-top: 1px dotted colour(neutral-5);
 
@@ -375,35 +427,73 @@
     @include mq(tablet) {
         padding-left: $gs-gutter / 2;
     }
-    .container--has-toggle & {
+
+    .fc-container--has-toggle & {
         @include mq(tablet, $until: leftCol) {
             margin-right: gs-span(1);
         }
     }
+    .commercial--dfp-single & {
+        margin: 0;
+    }
     .ad-slot--paid-for-badge__link {
         position: relative;
-        float: right;
+
+        &:after {
+            display: block;
+            height: 0;
+            width: $left-column + $gs-gutter;
+            content: '';
+            border-bottom: 1px dotted colour(neutral-5);
+
+            @include mq(leftCol) {
+                width: $left-column;
+            }
+
+            @include mq(wide) {
+                width: $left-column-wide;
+            }
+        }
 
         @include mq(mobile, $until: leftCol) {
-            margin-top: get-line-height(data, 3)*-1;
+            margin-top: 0;
+        }
+    }
+    .ad-slot--paid-for-badge__logo {
+        @include mq(mobile, $until: leftCol) {
+            max-height: 60px;
         }
     }
 
     @include mq(leftCol) {
         clear: left;
+        width: $left-column;
         padding: 0;
         margin: 0;
         float: left;
         min-height: 0;
         margin-top: 4px;
+        padding-top: 2px;
+        border-top: 1px dotted colour(neutral-5);
+
+        .commercial-dfp-multi & {
+            position: absolute;
+            bottom: $gs-gutter;
+        }
 
         .ad-slot--paid-for-badge__link {
             float: none;
             margin-top: $gs-row-height/4;
         }
     }
-
+    @include mq(tablet, $until: leftCol) {
+        float: right;
+        clear: right;
+        width: $left-column + $gs-gutter;
+    }
     @include mq(wide) {
+        width: $left-column-wide;
+
         .has-page-skin & {
             margin-left: 50%;
             width: auto;
@@ -414,8 +504,16 @@
                 float: right;
             }
         }
-        .has-page-skin .container--has-toggle & {
+        .has-page-skin .fc-container--has-toggle & {
             margin-right: gs-span(1);
+        }
+    }
+    @include mq($until: tablet) {
+        clear: both;
+        border-top: 1px dotted colour(neutral-5);
+
+        .fc-container--tag & {
+            width: gs-span(2);
         }
     }
 }

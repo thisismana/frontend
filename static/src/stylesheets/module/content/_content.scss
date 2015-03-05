@@ -37,7 +37,6 @@
         .content__article-body {
             padding-right: gs-span(1) + $gs-gutter;
 
-            .img--landscape,
             .ad-slot {
                 margin-right: -1 * (gs-span(1) + $gs-gutter);
             }
@@ -79,6 +78,21 @@
             margin-right: gs-span(1) + $gs-gutter;
         }
     }
+
+    .content--image & {
+        max-width: none;
+        margin-right: 0;
+        @include mq(wide) {
+            margin-right: gs-span(1) + $gs-gutter;
+        }
+    }
+}
+
+.content__hr {
+    border: 0;
+    margin: 0;
+    border-top: 1px dotted colour(neutral-5);
+    padding-top: 5px;
 }
 
 .content__secondary-column {
@@ -86,9 +100,10 @@
     top: 0;
     right: 0;
     height: 100%;
-    overflow: hidden; // quick hackfix for overflowing right hand components
     margin-right: $gs-gutter;
     width: gs-span(4);
+    padding-left: $gs-gutter;
+    overflow: hidden;
 
     @include mq($until: desktop) {
         display: none;
@@ -142,6 +157,11 @@
         @include fs-header(4);
         line-height: get-line-height(header, 2);
         float: none;
+        padding-right: 0;
+    }
+
+    .content--interactive & {
+        padding-right: $gs-gutter/3 !important;
     }
 }
 
@@ -156,6 +176,24 @@
 
     .content__series-label__link {
         color: colour(neutral-2);
+    }
+}
+
+@include mq(leftCol, wide) {
+    .content__section-label__link,
+    .container__meta__title {
+        font-size: 20px !important;
+        line-height: 24px !important;
+    }
+
+    .content__series-label__link {
+        @include font-size(18, 22);
+        display: block;
+
+        .content--interactive & {
+            font-size: 20px !important;
+            line-height: 24px !important;
+        }
     }
 }
 
@@ -342,6 +380,17 @@
     padding-top: $gs-baseline / 6;
     margin-bottom: $gs-baseline / 2;
 
+    time {
+        display: inline-block;
+
+        @include mq(desktop) {
+            .content--interactive & {
+                display: inline;
+                padding-right: $gs-gutter/4;
+            }
+        }
+    }
+
     i {
         position: relative;
         top: 1px;
@@ -357,17 +406,30 @@
     }
 
     @include mq(leftCol) {
-        height: gs-height(1) + $gs-baseline;
+        min-height: gs-height(1) + $gs-baseline;
         padding-top: $gs-baseline/6;
         padding-bottom: $gs-baseline;
         margin-bottom: 0;
         border-top: 1px dotted colour(neutral-5);
     }
+}
 
-    @include mq(wide) {
-        .content__dateline-time {
-            display: inline-block;
-        }
+.content__dateline-wpd--modified {
+    color: colour(news-default);
+    cursor: pointer;
+
+    &:hover,
+    &:active,
+    &:focus {
+        text-decoration: underline;
+    }
+}
+
+.content__dateline-lm {
+    padding-top: $gs-baseline/4;
+
+    @include mq(leftCol) {
+        padding-top: $gs-baseline/6;
     }
 }
 
@@ -475,19 +537,22 @@
 
     @include mq(tablet) {
         @include fs-bodyHeading(2, true);
-        padding-right: gs-span(2);
         line-height: 22px;
     }
 
     @include mq(leftCol) {
         clear: both;
-        margin-bottom: 0;
-        padding-right: 0;
+        padding-top: $gs-baseline/6;
         border-top: 1px dotted colour(neutral-5);
         @include box-sizing(border-box);
-        min-height: gs-height(1) + $gs-baseline;
-        padding-top: $gs-baseline/6;
         padding-bottom: $gs-baseline;
+        min-height: $gs-baseline*4;
+    }
+
+    .content__meta-container--twitter &,
+    .content__meta-container--bio & {
+        min-height: 0;
+        padding-bottom: 0;
     }
 }
 
@@ -571,13 +636,14 @@
 }
 
 .content--advertisement-feature {
-    background-color: colour(neutral-8);
-
+    &.content--article,
+    &.content--interactive {
+        background-color: colour(neutral-8);
+    }
     .content__standfirst,
     .content__dateline,
     .caption--main,
-    .ad-slot--paid-for-badge__header,
-    .ad-slot--paid-for-badge__label {
+    .ad-slot--paid-for-badge__header {
         color: colour(neutral-2-contrasted);
     }
     .content__headline,
@@ -613,3 +679,129 @@
     padding: 0;
     @include box-sizing(border-box);
 }
+
+.meta__twitter,
+.meta__email {
+    margin: (-$gs-baseline*2/3) ($gs-gutter/4) (-$gs-baseline/6) 0;
+    display: inline;
+
+    .content__meta-container--tonal-header & {
+        @include mq($until: leftCol) {
+            margin-top: -($gs-baseline/3);
+        }
+    }
+
+    .icon {
+        margin-top: $gs-baseline/3;
+        overflow: visible;
+    }
+
+    .button {
+        padding-top: 1px;
+        margin-right: 0;
+
+        .tonal--tone-media & {
+            border: 0;
+            background-color: colour(multimedia-support-4);
+
+            &:hover {
+                background-color: colour(neutral-2);
+            }
+        }
+
+        @include mq($until: leftCol) {
+            padding: 0;
+            border: 0;
+            border-radius: 0;
+            margin-right: 0;
+            background-color: transparent !important;
+
+            .inline-mail svg {
+                margin-top: $gs-baseline/4;
+            }
+        }
+
+        @include mq(leftCol, wide) {
+            max-width: $left-column;
+        }
+    }
+
+    .contact {
+        height: 21px;
+        display: inline-block;
+        vertical-align: top;
+
+        @include mq(leftCol) {
+            margin-top: -1px;
+        }
+    }
+
+    @include mq(leftCol) {
+        margin-top: $gs-baseline/1.2;
+        margin-bottom: $gs-baseline * 3/2;
+        display: block;
+    }
+}
+
+@include mq(leftCol) {
+    .meta__email {
+        .content__meta-container--email.content__meta-container--twitter & {
+            margin-top: $gs-baseline/2;
+        }
+    }
+
+    .meta__twitter {
+        .content__meta-container--email.content__meta-container--twitter & {
+            margin-bottom: 0;
+        }
+    }
+}
+
+.meta__bio {
+    margin-bottom: $gs-baseline;
+    padding-top: $gs-baseline/2;
+
+    color: colour(neutral-2);
+    @include fs-headline(1);
+
+    @include mq($until: leftCol) {
+        display: none;
+    }
+
+    .tonal--tone-media & {
+        color: colour(neutral-7);
+    }
+
+    .meta__author--comment & {
+        padding-top: $gs-baseline/6;
+        border-top: 1px dotted colour(neutral-5);
+    }
+
+    .content__meta-container--twitter &,
+    .content__meta-container--email & {
+        margin-bottom: 0;
+    }
+
+    .content__meta-container--tonal-header & {
+        border-top: 1px dotted colour(neutral-5);
+        padding-top: $gs-baseline/6;
+    }
+}
+
+.meta__contact-header {
+    @include fs-textSans(1);
+    line-height: 15px;
+    color: colour(neutral-2);
+    margin-bottom: 0;
+    border-top: 1px dotted colour(neutral-5);
+    padding-top: $gs-baseline/6;
+
+    .content__meta-container--bio & {
+        margin-top: $gs-baseline;
+    }
+}
+
+.related .button--show-more {
+    display: none;
+}
+

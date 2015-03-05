@@ -263,6 +263,10 @@
     }
 }
 
+@function colour-hover($colour) {
+    @return darken(colour($colour), 10%)
+}
+
 @mixin absolute-center {
     // this is a pattern for horizontally and vertically centering an element within its container
     // the negative values expand the box in which the element is centered, which is required when the element
@@ -284,4 +288,17 @@
     &:-moz-placeholder { @content; }
     &::-moz-placeholder { @content; }
     &:-ms-input-placeholder { @content; }
+}
+
+// convert a given width to one available in _vars.scss if it's within the tolerance
+@function normalize-width($width) {
+    $tolerance: 10px;
+
+    @each $candidate in $available-image-widths {
+        @if (abs($candidate - $width) <= $tolerance) {
+            @return $candidate;
+        }
+    }
+
+    @return $width;
 }

@@ -6,53 +6,12 @@ case class DfpDataExtractor(lineItems: Seq[GuLineItem]) {
 
   val isValid = lineItems.nonEmpty
 
-  def sectionsFromAdUnits(adUnits: Seq[GuAdUnit]): Seq[String] = adUnits flatMap (_.path.drop(1).headOption)
-
-  val sponsorships: Seq[Sponsorship] = {
-    lineItems.withFilter { lineItem =>
-      lineItem.sponsoredTags.nonEmpty && lineItem.isCurrent
-    }.map { lineItem =>
-      Sponsorship(
-        tags = lineItem.sponsoredTags,
-        sections = sectionsFromAdUnits(lineItem.targeting.adUnits),
-        sponsor = lineItem.sponsor,
-        countries = locationsTargeted(lineItem),
-        lineItemId = lineItem.id)
-    }.distinct
-  }
-
-  val advertisementFeatureSponsorships: Seq[Sponsorship] = {
-    lineItems.withFilter { lineItem =>
-      lineItem.advertisementFeatureTags.nonEmpty && lineItem.isCurrent
-    }.map { lineItem =>
-      Sponsorship(
-        tags = lineItem.advertisementFeatureTags,
-        sections = sectionsFromAdUnits(lineItem.targeting.adUnits),
-        sponsor = lineItem.sponsor,
-        countries = locationsTargeted(lineItem),
-        lineItemId = lineItem.id)
-    }.distinct
-  }
-
   val inlineMerchandisingTargetedTags: InlineMerchandisingTagSet = {
     lineItems.foldLeft(InlineMerchandisingTagSet()) { (soFar, lineItem) =>
       soFar.copy(keywords = soFar.keywords ++ lineItem.inlineMerchandisingTargetedKeywords,
         series = soFar.series ++ lineItem.inlineMerchandisingTargetedSeries,
         contributors = soFar.contributors ++ lineItem.inlineMerchandisingTargetedContributors)
     }
-  }
-
-  val foundationSupported: Seq[Sponsorship] = {
-    lineItems.withFilter { lineItem =>
-      lineItem.foundationSupportedTags.nonEmpty && lineItem.isCurrent
-    }.map { lineItem =>
-      Sponsorship(
-        tags = lineItem.foundationSupportedTags,
-        sections = sectionsFromAdUnits(lineItem.targeting.adUnits),
-        sponsor = lineItem.sponsor,
-        countries = locationsTargeted(lineItem),
-        lineItemId = lineItem.id)
-    }.distinct
   }
 
   val pageSkinSponsorships: Seq[PageSkinSponsorship] = {

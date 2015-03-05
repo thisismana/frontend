@@ -1,8 +1,10 @@
-/* global _: true */
 define([
+    'underscore',
+    'jquery',
     'modules/vars',
     'modules/authed-ajax',
     'modules/cache',
+    'modules/modal-dialog',
     'utils/internal-content-code',
     'utils/url-abs-path',
     'utils/identity',
@@ -10,9 +12,12 @@ define([
     'utils/snap'
 ],
 function (
+    _,
+    $,
     vars,
     authedAjax,
     cache,
+    modalDialog,
     internalContentCode,
     urlAbsPath,
     identity,
@@ -48,8 +53,7 @@ function (
             .done(function(results, resultsTitle) {
                 var capiItem,
                     icc,
-                    err,
-                    convertSnapMsg = 'Click OK to create a { ' + vars.CONST.latestSnapPrefix + resultsTitle + ' } item, or Cancel to just create a link...';
+                    err;
 
                 // ContentApi item
                 if (results && results.length === 1) {
@@ -72,7 +76,7 @@ function (
                     err = 'Sorry, special links must be dragged to the Clipboard, initially';
 
                 // A snap, but a link off of the tool itself
-                } else if (_.some([window.location.hostname, vars.CONST.viewer], function(str) { return item.id().indexOf(str) > -1; })) {
+                } else if (item.id().indexOf(window.location.hostname) > -1) {
                     err = 'Sorry, that link cannot be added to a front';
 
                 // A snap, but a link to unavailable guardian content
@@ -84,8 +88,23 @@ function (
                     item.convertToSnap();
 
                 // A snap, of type 'latest', ie.  where the target is a Guardian tag/section page.
-                } else if (results && results.length > 1 && window.confirm(convertSnapMsg)) {
-                    item.convertToLatestSnap(resultsTitle);
+                } else if (results && results.length > 1) {
+                    modalDialog.confirm({
+                        name: 'select_snap_type',
+                        data: {
+                            prefix: vars.CONST.latestSnapPrefix,
+                            resultsTitle: resultsTitle
+                        }
+                    }).then(function () {
+                        item.convertToLatestSnap(resultsTitle);
+                        defer.resolve(item);
+                    }, function () {
+                        item.convertToLinkSnap();
+                        defer.resolve(item);
+                    });
+
+                    // Waiting for the modal to be closed
+                    return;
 
                     // A snap, of default type 'link'.
                 } else {
@@ -104,11 +123,14 @@ function (
     }
 
     function decorateItems (articles) {
-        var num = vars.CONST.capiBatchSize || 10;
+        var num = vars.CONST.capiBatchSize || 10,
+            pending = [];
 
         _.each(_.range(0, articles.length, num), function(index) {
-            decorateBatch(articles.slice(index, index + num));
+            pending.push(decorateBatch(articles.slice(index, index + num)));
         });
+
+        return $.when.apply($, pending);
     }
 
     function decorateBatch (articles) {
@@ -123,7 +145,7 @@ function (
             }
         });
 
-        fetchContentByIds(ids)
+        return fetchContentByIds(ids)
         .done(function(results){
             if (!_.isArray(results)) {
                 return;
@@ -229,11 +251,71 @@ function (
         return defer.promise();
     }
 
+    function dateYyyymmdd() {
+        var d = new Date();
+        return [d.getFullYear(), d.getMonth() + 1, d.getDate()].map(function(p) { return p < 10 ? '0' + p : p; }).join('-');
+    }
+
+    function fetchLatest (options) {
+        var url = vars.CONST.apiSearchBase + '/',
+            propName, term;
+
+        options = _.extend({
+            article: '',
+            term: '',
+            filter: '',
+            filterType: '',
+            page: 1,
+            pageSize: vars.CONST.searchPageSize || 25,
+            isDraft: true
+        }, options);
+        term = options.term;
+
+        if (options.article) {
+            term = options.article;
+            propName = 'content';
+            url += term + '?' + vars.CONST.apiSearchParams;
+        } else {
+            term = encodeURIComponent(term.trim());
+            propName = 'results';
+            url += 'search?' + vars.CONST.apiSearchParams;
+            url += options.isDraft ?
+                '&content-set=-web-live&order-by=oldest&use-date=scheduled-publication&from-date=' + dateYyyymmdd() :
+                '&content-set=web-live&order-by=newest';
+            url += '&page-size=' + options.pageSize;
+            url += '&page=' + options.page;
+            url += term ? '&q=' + term : '';
+            url += options.filter ? '&' + options.filterType + '=' + encodeURIComponent(options.filter) : '';
+        }
+
+        var deferred = new $.Deferred();
+        authedAjax.request({
+            url: url
+        }).then(function(data) {
+            var rawArticles = data.response && data.response[propName] ? [].concat(data.response[propName]) : [];
+
+            if (!term && !rawArticles.length) {
+                deferred.reject(new Error('Sorry, the Content API is not currently returning content'));
+            } else {
+                deferred.resolve(_.extend({}, data.response, {
+                    results: _.filter(rawArticles, function(opts) {
+                        return opts.fields && opts.fields.headline;
+                    })
+                }));
+            }
+        }, function (xhr) {
+            deferred.reject(new Error('Content API error (' + xhr.status + '). Content is currently unavailable'));
+        });
+
+        return deferred.promise();
+    }
+
     return {
         fetchContent: fetchContent,
         fetchMetaForPath: fetchMetaForPath,
         decorateItems: decorateItems,
-        validateItem:  validateItem
+        validateItem:  validateItem,
+        fetchLatest: fetchLatest
     };
 
 });

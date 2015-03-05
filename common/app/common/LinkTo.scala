@@ -1,6 +1,6 @@
 package common
 
-import layout.FaciaCard
+import layout.ContentCard
 import play.twirl.api.Html
 import play.api.mvc.{Result, AnyContent, Request, RequestHeader}
 import conf.Configuration
@@ -9,7 +9,6 @@ import org.jsoup.Jsoup
 import scala.collection.JavaConversions._
 import conf.Configuration.environment
 import dev.HttpSwitch
-
 
 /*
  * Builds absolute links to the core site (www.theguardian.com)
@@ -52,7 +51,7 @@ trait LinkTo extends Logging {
     case t: Trail => Option(apply(t.url))
   }
 
-  def apply(faciaCard: FaciaCard)(implicit request: RequestHeader): String =
+  def apply(faciaCard: ContentCard)(implicit request: RequestHeader): String =
     faciaCard.url.get(request)
 
   private def urlFor(path: String, edition: Edition) = s"$host/${Editionalise(clean(path), edition)}"
@@ -94,25 +93,6 @@ object LinkTo extends LinkTo {
     )
   }
 
-}
-
-object ClassicLink {
-
-  import java.net.URLEncoder.encode
-
-  def apply(page: MetaData)(implicit request: RequestHeader) = {
-
-    // quick fix for xx-alpha bug
-    val fixedId = page.id match {
-      case "uk-alpha" => "uk"
-      case "au-alpha" => "au"
-      case "us-alpha" => "us"
-      case id => id
-    }
-
-    val targetUrl = encode(LinkTo(s"/$fixedId?view=classic"), "UTF-8")
-    LinkTo{s"/preference/platform/classic?page=$targetUrl"}
-  }
 }
 
 class CanonicalLink {

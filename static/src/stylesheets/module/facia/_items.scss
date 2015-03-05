@@ -13,31 +13,35 @@
 @import 'item-layouts/fc-item--list-compact';
 @import 'item-layouts/fc-item--list-compact--media';
 @import 'item-layouts/fc-item--list-media';
-@import 'item-layouts/fc-item--full';
-@import 'item-layouts/fc-item--mega-full';
+@import 'item-layouts/fc-item--full-media-50';
+@import 'item-layouts/fc-item--full-media-75';
+@import 'item-layouts/fc-item--full-media-100';
+@import 'item-layouts/fc-item--fluid';
 
 // overrides of current slices
 
 .fc-slice__item {
+    width: 100%;
     position: relative;
     padding-bottom: 0;
     margin-bottom: $gs-baseline;
 
+    @include mq(tablet) {
+        .has-flex & {
+            @include flex-display;
+        }
+    }
+
     + .fc-slice__item {
         @include vertical-item-separator;
     }
-
-    .has-flex & {
-        @include flex-display;
+    + .fc-slice__item--no-mpu:before {
+        border-left: 0 !important;
     }
 
     &.l-list__item {
         margin-bottom: 0;
         padding-bottom: $gs-baseline;
-
-        &:last-child {
-            padding-bottom: 0;
-        }
     }
 }
 
@@ -47,6 +51,10 @@
     }
 }
 .fc-slice__item--no-mpu {
+    -webkit-box-flex: 0 !important;
+    -moz-box-flex: 0 !important;
+    -webkit-flex: 0 !important;
+    -ms-flex: 0 !important;
     flex: 0 !important;
 }
 
@@ -92,7 +100,7 @@
         &.fc-item--has-cutout {
             .fc-item__header,
             .fc-sublinks {
-                padding-right: 33%;
+                padding-right: 25%;
             }
         }
 
@@ -106,6 +114,14 @@
                     min-height: gs-height(3) + $gs-baseline;
                 }
             }
+        }
+
+        .fc-item__avatar {
+            height: gs-height(2) + $gs-baseline  * 2;
+        }
+
+        .fc-item__avatar__media {
+            right: - $gs-gutter;
         }
 
         .vjs-big-play-button > span {
@@ -144,14 +160,27 @@
             .fc-item__container {
                 padding-bottom: gs-height(3) + $gs-baseline * 3;
             }
+        }
 
-            .fc-trail__count__label {
-                display: none;
-            }
+        .fc-item__avatar {
+            height: gs-height(4);
         }
 
         .fc-item__avatar__media {
             right: -40%;
+        }
+    }
+
+    &.fc-item--video {
+        @include mq($until: desktop) {
+
+            .fc-item__video-play {
+                display: none;
+            }
+            .fc-item__video-fallback {
+                display: block;
+            }
+
         }
     }
 
@@ -162,10 +191,6 @@
 
         .fc-item__avatar__media {
             right: -20%;
-        }
-
-        .fc-item__avatar {
-            height: gs-height(4);
         }
     }
 }
@@ -194,9 +219,9 @@
     }
 }
 
-.fc-item--full-tablet {
+.fc-item--full-media-50-tablet {
     @include mq(tablet) {
-        @include fc-item--full;
+        @include fc-item--full-media-50;
 
         .fc-sublink:nth-child(n+5) {
             display: none;
@@ -204,9 +229,63 @@
     }
 }
 
-.fc-item--mega-full-tablet {
+.fc-item--full-media-75-tablet {
     @include mq(tablet) {
-        @include fc-item--mega-full;
+        @include fc-item--full-media-75;
+
+        .fc-sublink:nth-child(n+5) {
+            display: none;
+        }
+    }
+}
+
+.fc-item--full-media-100-tablet {
+    @include mq(tablet) {
+        @include fc-item--full-media-100;
+    }
+}
+
+.fc-item--fluid-mobile {
+    @include mq($until: tablet) {
+        @include fc-item--fluid;
+    }
+
+    @include mq(mobileLandscape, tablet) {
+        .fc-item__image-container {
+            display: none;
+        }
+
+        .fc-item__header {
+            @include fs-headline(5, true);
+        }
+    }
+}
+
+.fc-item--fluid-tablet {
+    @include mq(tablet) {
+        @include fc-item--fluid;
+        @include fc-item--horizontal(20%);
+
+        .has-flex-wrap & {
+            .fc-item__container {
+                @include flex-direction(row);
+            }
+        }
+
+        .fc-item__header {
+            @include fs-headline(3, true);
+        }
+    }
+
+    @include mq(desktop) {
+        .fc-item__header {
+            @include fs-headline(6, true);
+        }
+
+        .fc-item__header,
+        .fc-item__standfirst {
+            padding-right: 30%;
+        }
     }
 }
 

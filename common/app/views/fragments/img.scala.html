@@ -1,5 +1,11 @@
-@(img: Option[model.ImageContainer], isShowcase: Boolean = false, isFeature: Boolean = false)
-@import views.support.{ImgSrc, Item620, Naked, Profile, SeoOptimisedContentImage, Showcase}
+@(img: Option[model.ImageContainer],
+  isShowcase: Boolean = false,
+  isFeature: Boolean = false,
+  isImageContent: Boolean = false,
+  url: Option[String] = None,
+  isLightboxable: Boolean = false)
+
+@import views.support.{ImgSrc, Item620, Item940, Naked, Profile, SeoOptimisedContentImage, Showcase}
 
 @img.map{ picture =>
 
@@ -7,22 +13,21 @@
         class="media-primary media-content@if(isShowcase){ media-primary--showcase}">
 
         @if(isFeature && isShowcase) {
-            @ImgSrc.imager(picture, Naked).map { imgSrc =>
-
-                <div class="js-image-upgrade u-responsive-ratio u-responsive-ratio--letterbox" data-src="@imgSrc">
-                    @image(picture)
+            @lightbox(picture, Naked)
+            <div class="gs-container">
+                <div class="content__main-column">
+                    @caption(picture)
                 </div>
-                <div class="gs-container">
-                    <div class="content__main-column">
-                        @caption(picture)
-                    </div>
-                </div>
-            }
+            </div>
         } else {
             @if(isShowcase) {
-                @upgrade(picture, Showcase)
+                @lightbox(picture, Showcase)
             } else {
-                @upgrade(picture, Item620)
+                @if(isImageContent) {
+                    @lightbox(picture, Item940)
+                } else {
+                    @lightbox(picture, Item620)
+                }
             }
             @caption(picture)
         }
@@ -37,12 +42,26 @@
     }
 }
 
+@lightbox(picture: model.ImageContainer, upgradeProfile: Profile) = {
+    @ImgSrc.imager(picture, upgradeProfile).map { imgSrc =>
+        @if(isLightboxable) {
+            <a href="@url#img-1" class="article__img-container js-gallerythumbs" data-link-name="Launch Article Lightbox" data-is-ajax>
+                <div class="js-image-upgrade @if(isFeature && isShowcase){u-responsive-ratio u-responsive-ratio--letterbox}" data-src="@imgSrc">
+                    @image(picture)
+                    <span class="rounded-icon article__fullscreen"><i class="i i-expand-white"></i><i class="i i-expand-black"></i></span>
+                </div>
+            </a>
+        } else {
+            @upgrade(picture, upgradeProfile)
+        }
+    }
+}
+
 @image(picture: model.ImageContainer) = {
     <img src="@SeoOptimisedContentImage.bestFor(picture).map(Html(_))"
         class="maxed responsive-img"
         itemprop="contentURL representativeOfPage"
         alt="@SeoOptimisedContentImage.altTextFor(picture).getOrElse("")" />
-
 }
 
 @caption(picture: model.ImageContainer) = {

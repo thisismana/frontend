@@ -7,8 +7,7 @@ define([
     'common/utils/$',
     'common/utils/config',
     'common/utils/mediator',
-    'common/modules/component',
-    'common/modules/gallery/lightbox'
+    'common/modules/component'
 ], function (
     bean,
     bonzo,
@@ -18,8 +17,7 @@ define([
     $,
     config,
     mediator,
-    Component,
-    LightboxGallery
+    Component
 ) {
 
     var verticallyResponsiveImages = function () {
@@ -52,23 +50,11 @@ define([
             mostViewed.manipulationType = 'html';
             mostViewed.endpoint = '/gallery/most-viewed.json';
             mostViewed.ready = function () {
-                mediator.emit('ui:images:upgrade', container);
+                mediator.emit('ui:images:upgradePicture', container);
             };
             mostViewed.fetch(container, 'html');
         },
         ready = function () {
-            LightboxGallery.init();
-
-            // Opens block level sharing links in the lightbox
-            var galleryHash = window.location.hash,
-                lightbox = new LightboxGallery.GalleryLightbox(),
-                hashIndex = galleryHash.substr(1),
-                parsedGalleryIndex = parseInt(hashIndex, 10),
-                galleryIndex = isNaN(parsedGalleryIndex) ? 1 : parsedGalleryIndex;// 1-based index
-            if (galleryHash) {
-                lightbox.loadGalleryfromJson(config.page.galleryLightbox, galleryIndex);
-            }
-
             verticallyResponsiveImages();
             $('.js-delayed-image-upgrade').removeClass('js-delayed-image-upgrade').addClass('js-image-upgrade');
 

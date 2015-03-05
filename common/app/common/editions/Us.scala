@@ -1,6 +1,7 @@
 package common.editions
 
 import common._
+import common.editions.Uk._
 import org.joda.time.DateTimeZone
 import contentapi.QueryDefaults
 import common.NavItem
@@ -14,7 +15,16 @@ object Us extends Edition(
 
   implicit val US = Us
 
-  val cultureLocalNav: Seq[SectionLink] = Seq(movies, televisionAndRadio, music, books, artanddesign, stage, classicalMusic)
+  val cultureLocalNav: Seq[SectionLink] = Seq(
+    movies,
+    televisionAndRadio,
+    music,
+    games,
+    books,
+    artanddesign,
+    stage,
+    classicalMusic
+  )
 
   override val navigation: Seq[NavItem] = {
     Seq(
@@ -24,7 +34,7 @@ object Us extends Edition(
       NavItem(opinion),
       NavItem(sports, Seq(soccer, mls, nfl, mlb, nba, nhl)),
       NavItem(soccer, footballNav),
-      NavItem(technology, Seq(games)),
+      NavItem(technology),
       NavItem(arts, cultureLocalNav),
       NavItem(lifeandstyle, Seq(foodanddrink, healthandwellbeing, loveAndSex, family, women, homeAndGarden)),
       NavItem(fashion),
@@ -34,6 +44,7 @@ object Us extends Edition(
       NavItem(environment, Seq(globalDevelopment, cities)),
       NavItem(science),
       NavItem(media),
+      NavItem(crosswords),
       NavItem(video)
     )
   }
@@ -45,7 +56,7 @@ object Us extends Edition(
     NavItem(opinion),
     NavItem(sports, Seq(soccer, mls, nfl, mlb, nba, nhl)),
     NavItem(soccer, footballNav),
-    NavItem(technology, Seq(games)),
+    NavItem(technology),
     NavItem(arts, cultureLocalNav),
     NavItem(lifeandstyle, Seq(foodanddrink, healthandwellbeing, loveAndSex, family, women, homeAndGarden)),
     NavItem(fashion),

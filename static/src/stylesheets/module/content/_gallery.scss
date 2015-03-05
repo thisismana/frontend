@@ -88,7 +88,7 @@
     color: colour(neutral-7);
     margin-bottom: 0;
 
-    > strong {
+    > strong:first-child {
         display: block;
         @include fs-headline(2);
         margin-bottom: $gs-baseline/2;
@@ -142,13 +142,12 @@
     right: 0;
 }
 
-.gallery2__fullscreen {
-    @include border-radius(50%);
+.gallery2__fullscreen,
+.article__fullscreen {
     top: 0;
     right: 0;
     width: 44px;
     height: 44px;
-    display: inline-block;
     background-color: rgba(51, 51, 51, .6);
     position: absolute;
     margin: $gs-gutter/2;
@@ -166,8 +165,26 @@
         display: none;
     }
 
+    .element--thumbnail & {
+        width: 33px;
+        height: 33px;
+        margin: $gs-baseline/3 $gs-gutter/5;
+        display: none;
+
+        .i-expand-black,
+        .i-expand-white {
+            width: 50%;
+            height: 50%;
+        }
+    }
+
+    .element--thumbnail:hover & {
+        display: block;
+    }
+
     @include mq(desktop) {
-        .gallery2__img-container:hover & {
+        .gallery2__img-container:hover &,
+        .article__img-container:hover & {
             background-color: colour(media-default);
 
             .i-expand-black {
@@ -177,6 +194,10 @@
                 display: none;
             }
         }
+    }
+
+    @if $old-ie {
+        display: none;
     }
 }
 
@@ -215,6 +236,24 @@
 
             .commentcount__label {
                 display: inline;
+            }
+        }
+    }
+}
+
+//disable hover state for lightbox and related content as they're on dark backgrounds
+.gallery__most-popular,
+.gallery-lightbox--endslate {
+    .tone-media--item {
+        .u-faux-block-link--hover {
+            background-color: colour(media-background) !important;
+
+            .responsive-img {
+                opacity: 1 !important;
+            }
+
+            .fc-item__link {
+                text-decoration: underline !important;
             }
         }
     }

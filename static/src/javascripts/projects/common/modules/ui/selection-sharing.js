@@ -31,7 +31,7 @@ define([
         twitterMessageLimit = 115, // 140 - t.co length - 3 chars for quotes and url spacing
         emailShortUrl = config.page.shortUrl + '/sbl',
         emailHrefTemplate = 'mailto:?subject={{subject}}&body="{{selection}}" {{url}}',
-        validAncestors = ['js-article__body', 'content__standfirst', 'block', 'caption--main'],
+        validAncestors = ['js-article__body', 'content__standfirst', 'block', 'caption--main', 'content__headline'],
 
     updateSelection = function () {
 
@@ -106,8 +106,8 @@ define([
         // and the UI is generally fiddly on touch.
         if (!detect.hasTouchScreen()) {
             $body.append($selectionSharing);
-            $twitterAction = $('.social__item--twitter .social__action');
-            $emailAction = $('.social__item--email .social__action');
+            $twitterAction = $('.js-selection-twitter');
+            $emailAction = $('.js-selection-email');
             // Set timeout ensures that any existing selection has been cleared.
             bean.on(document.body, 'keypress keydown keyup', _.debounce(updateSelection, 50));
             bean.on(document.body, 'mouseup', _.debounce(updateSelection, 200));

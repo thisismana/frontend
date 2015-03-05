@@ -27,7 +27,8 @@ module.exports = function (grunt) {
                 scsslint: 'grunt-scss-lint',
                 cssmetrics: 'grunt-css-metrics',
                 assetmonitor: 'grunt-asset-monitor',
-                px_to_rem: 'grunt-px-to-rem'
+                px_to_rem: 'grunt-px-to-rem',
+                frequency_graph: 'grunt-frequency-graph'
             }
         }
     });
@@ -41,7 +42,7 @@ module.exports = function (grunt) {
     }
 
     // Default task
-    grunt.registerTask('default', ['clean', 'validate', 'compile', 'test', 'analyse']);
+    grunt.registerTask('default', ['clean', 'validate', 'prepare', 'compile', 'test', 'analyse']);
 
     /**
      * Validate tasks
@@ -70,6 +71,7 @@ module.exports = function (grunt) {
             grunt.task.run(['replace:cssSourceMaps', 'copy:css']);
         }
 
+        grunt.task.run(['copy:pxCss']);
         grunt.task.run(['px_to_rem']);
 
         if (isOnlyTask(this) && !fullCompile) {
@@ -78,7 +80,7 @@ module.exports = function (grunt) {
 
     });
     grunt.registerTask('compile:js', function(fullCompile) {
-        grunt.task.run(['requirejs', 'copy:javascript']);
+        grunt.task.run(['compile:inlineSvgs', 'requirejs', 'copy:javascript']);
         if (!options.isDev) {
             grunt.task.run('uglify:javascript');
         }
@@ -90,7 +92,8 @@ module.exports = function (grunt) {
     });
     grunt.registerTask('compile:fonts', ['mkdir:fontsTarget', 'webfontjson']);
     grunt.registerTask('compile:flash', ['copy:flash']);
-    grunt.registerTask('compile:conf', ['copy:headJs', 'copy:headCss', 'copy:assetMap']);
+    grunt.registerTask('compile:inlineSvgs', ['copy:inlineSVGs', 'svgmin:inlineSVGs']);
+    grunt.registerTask('compile:conf', ['copy:headJs', 'copy:headCss', 'copy:assetMap', 'compile:inlineSvgs']);
     grunt.registerTask('compile', [
         'concurrent:compile',
         'compile:fonts',
@@ -98,6 +101,10 @@ module.exports = function (grunt) {
         'asset_hash',
         'compile:conf'
     ]);
+
+    grunt.registerTask('prepare', ['jspm']);
+
+    grunt.registerTask('jspm', ['shell:jspmFaciaTool']);
 
     /**
      * compile:js:<requiretask> tasks. Generate one for each require task
@@ -120,6 +127,8 @@ module.exports = function (grunt) {
     grunt.registerTask('test:unit', function(app) {
         var target = app ? ':' + app : '';
         grunt.config.set('karma.options.singleRun', (options.singleRun === false) ? false : true);
+
+        grunt.task.run(['copy:inlineSVGs']);
         grunt.task.run('karma' + target);
     });
     grunt.registerTask('test', ['test:unit']);

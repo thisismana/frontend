@@ -1,6 +1,5 @@
 package com.gu
 
-import akka.remote.transport.TestAssociationHandle
 import sbt._
 import sbt.Keys._
 import play.Play.autoImport._
@@ -14,30 +13,31 @@ object Frontend extends Build with Prototypes {
 
   val common = application("common").settings(
     libraryDependencies ++= Seq(
-      guardianConfiguration,
-      contentApiClient,
       akkaAgent,
-      jSoup,
-      jacksonCore,
-      jacksonMapper,
-      awsSdk,
-      quartzScheduler,
-      dnaCommon,
-      scalajTime,
       apacheCommonsMath3,
-      shadeMemcached,
-      rome,
-      romeModules,
-      snappyJava,
-      liftJson,
-      playGoogleAuth,
-      flexibleContentBlockToText,
-      flexibleContentBodyParser,
-      scalaCheck,
+      awsSdk,
+      contentApiClient,
+      crosswordsApiClient,
       faciaScalaClient,
       filters,
-      ws,
-      scalaTestPlus
+      flexibleContentBlockToText,
+      flexibleContentBodyParser,
+      guardianConfiguration,
+      jacksonCore,
+      jacksonMapper,
+      jSoup,
+      liftJson,
+      playGoogleAuth,
+      quartzScheduler,
+      rome,
+      romeModules,
+      scalaCheck,
+      scalajTime,
+      scalaTestPlus,
+      scalaz,
+      shadeMemcached,
+      snappyJava,
+      ws
     )
   ).settings(
       mappings in TestAssets ~= filterAssets
@@ -66,9 +66,6 @@ object Frontend extends Build with Prototypes {
   val article = application("article").dependsOn(commonWithTests).aggregate(common)
   val applications = application("applications")
     .dependsOn(commonWithTests)
-    .settings(
-      libraryDependencies += crosswordsApiClient
-    )
     .settings(crosswordsRouting: _*)
     .aggregate(common)
 
@@ -107,7 +104,9 @@ object Frontend extends Build with Prototypes {
       dfpAxis,
       anorm,
       jdbc
-    )
+    ),
+    routesImport += "bindables._",
+    routesImport += "org.joda.time.LocalDate"
   )
 
   val faciaTool = application("facia-tool").dependsOn(commonWithTests).aggregate(common).settings(
@@ -138,6 +137,10 @@ object Frontend extends Build with Prototypes {
 
   val onward = application("onward").dependsOn(commonWithTests).aggregate(common)
 
+  val weather = application("weather")
+    .dependsOn(commonWithTests)
+    .aggregate(common)
+
   val dev = application("dev-build")
     .dependsOn(
       withTests(article)
@@ -151,7 +154,8 @@ object Frontend extends Build with Prototypes {
       identity,
       admin,
       commercial,
-      onward
+      onward,
+      weather
     ).settings(crosswordsRouting: _*)
 
   val faciaEndToEnd = application("facia-end-to-end")
@@ -161,23 +165,27 @@ object Frontend extends Build with Prototypes {
 
   // this app has a very limited set.
   // it is designed to get all other services (e.g. onwards) from PROD
-  val preview = application("preview").dependsOn(
-    withTests(common),
+  val standalone = application("standalone").dependsOn(
     article,
     facia,
     applications,
     sport,
     commercial,
-    onward
+    onward,
+    weather
   )
 
-  val integrationTests = Project("integrated-tests", file("integrated-tests")).settings(
-    libraryDependencies ++= Seq(
-      scalaTest,
-      seleniumJava % Test,
-      jodaTime % Test
-    )
+  val preview = application("preview").dependsOn(withTests(common), standalone).settings(
+    routesImport += "scala.language.reflectiveCalls"
   )
+
+  val training = application("training").dependsOn(withTests(common), standalone).settings(
+    routesImport += "scala.language.reflectiveCalls"
+  )
+
+  val integrationTests = Project("integrated-tests", file("integrated-tests"))
+    .settings(frontendCompilationSettings:_*)
+    .settings(frontendIntegrationTestsSettings:_*)
 
   val pngResizer = application("png-resizer")
     .dependsOn(commonWithTests)
@@ -185,6 +193,10 @@ object Frontend extends Build with Prototypes {
     .settings(
       libraryDependencies += im4java
     )
+
+  val rss = application("rss")
+    .dependsOn(commonWithTests)
+    .aggregate(common)
 
   val main = root().aggregate(
     common,
@@ -204,6 +216,9 @@ object Frontend extends Build with Prototypes {
     commercial,
     onward,
     archive,
-    preview
+    preview,
+    training,
+    rss,
+    weather
   )
 }

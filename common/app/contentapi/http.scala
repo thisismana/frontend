@@ -4,15 +4,16 @@ import java.net.InetAddress
 import java.util.concurrent.TimeoutException
 
 import com.gu.contentapi.client.ContentApiClientLogic
-import common.ContentApiMetrics.ContentApi404Metric
+import common.ContentApiMetrics.{ContentApiErrorMetric, ContentApi404Metric}
 import common.{Logging, ExecutionContexts}
 import conf.Configuration
 import conf.Configuration.contentApi.previewAuth
 import metrics.{CountMetric, FrontendTimingMetric}
 import play.api.libs.ws.{WS, WSAuthScheme}
 
-import scala.concurrent.Future
-import scala.util.Try
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Success, Failure, Try}
 
 case class Response(body: String, status: Int, statusText: String)
 
@@ -42,6 +43,7 @@ class WsHttp(val httpTimingMetric: FrontendTimingMetric, val httpTimeoutMetric: 
     response.onSuccess {
       case r if r.status == 404 => ContentApi404Metric.increment()
       case r if r.status == 200 => httpTimingMetric.recordDuration(currentTimeMillis - start)
+      case _ =>
     }
 
     response.onFailure {
@@ -50,6 +52,14 @@ class WsHttp(val httpTimingMetric: FrontendTimingMetric, val httpTimeoutMetric: 
         httpTimeoutMetric.increment()
       case e: Exception =>
         log.warn(s"Content API client exception for $url in ${currentTimeMillis - start}: $e")
+    }
+
+    response onComplete {
+      case Success(r) if r.status >= 500 =>
+        ContentApiErrorMetric.increment()
+      case Failure(_) =>
+        ContentApiErrorMetric.increment()
+      case _ =>
     }
 
     response map { wsResponse =>
@@ -65,7 +75,7 @@ trait DelegateHttp { self: ContentApiClientLogic =>
 
   var _http: Http = new WsHttp(httpTimingMetric, httpTimeoutMetric)
 
-  override def get(url: String, headers: Map[String, String]) =
+  override def get(url: String, headers: Map[String, String])(implicit executionContext: ExecutionContext) =
     _http.GET(url, headers) map { response: Response =>
       self.HttpResponse(response.body, response.status, response.statusText)
   }

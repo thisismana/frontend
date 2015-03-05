@@ -1,19 +1,23 @@
-/* global _: true */
 define([
     'modules/vars',
     'knockout',
-    'utils/mediator',
-    'utils/url-abs-path',
+    'underscore',
+    'jquery',
+    'utils/alert',
     'utils/as-observable-props',
-    'utils/populate-observables',
-    'utils/full-trim',
-    'utils/sanitize-html',
     'utils/deep-get',
-    'utils/snap',
+    'utils/full-trim',
     'utils/human-time',
-    'utils/validate-image-src',
     'utils/identity',
     'utils/is-guardian-url',
+    'utils/logger',
+    'utils/mediator',
+    'utils/populate-observables',
+    'utils/sanitize-html',
+    'utils/snap',
+    'utils/url-abs-path',
+    'utils/url-host',
+    'utils/validate-image-src',
     'modules/copied-article',
     'modules/authed-ajax',
     'modules/content-api',
@@ -22,18 +26,23 @@ define([
     function (
         vars,
         ko,
-        mediator,
-        urlAbsPath,
+        _,
+        $,
+        alert,
         asObservableProps,
-        populateObservables,
-        fullTrim,
-        sanitizeHtml,
         deepGet,
-        snap,
+        fullTrim,
         humanTime,
-        validateImageSrc,
         identity,
         isGuardianUrl,
+        logger,
+        mediator,
+        populateObservables,
+        sanitizeHtml,
+        snap,
+        urlAbsPath,
+        urlHost,
+        validateImageSrc,
         copiedArticle,
         authedAjax,
         contentApi,
@@ -55,17 +64,13 @@ define([
 
             metaFields = [
                 {
-                    key: 'group',
-                    label: 'importance group',
-                    type: 'text'
-                },
-                {
                     key: 'headline',
                     editable: true,
+                    slimEditable: true,
                     ifState: 'enableContentOverrides',
                     label: 'headline',
                     type: 'text',
-                    maxLength: 90
+                    maxLength: 120
                 },
                 {
                     key: 'trailText',
@@ -79,7 +84,7 @@ define([
                     key: 'byline',
                     editable: true,
                     ifState: 'enableContentOverrides',
-                    if: 'showByline',
+                    'if': 'showByline',
                     omitForSupporting: true,
                     label: 'byline',
                     type: 'text'
@@ -87,7 +92,7 @@ define([
                 {
                     key: 'customKicker',
                     editable: true,
-                    if: 'showKickerCustom',
+                    'if': 'showKickerCustom',
                     label: 'custom kicker',
                     type: 'text'
                 },
@@ -100,20 +105,20 @@ define([
                     key: 'imageSrc',
                     editable: true,
                     omitForSupporting: true,
-                    if: 'imageReplace',
+                    'if': 'imageReplace',
                     label: 'replacement image URL',
                     validator: 'validateImageMain',
                     type: 'text'
                 },
                 {
                     key: 'imageSrcWidth',
-                    if: 'imageReplace',
+                    'if': 'imageReplace',
                     label: 'replacement image width',
                     type: 'text'
                 },
                 {
                     key: 'imageSrcHeight',
-                    if: 'imageReplace',
+                    'if': 'imageReplace',
                     label: 'replacement image height',
                     type: 'text'
                 },
@@ -121,20 +126,20 @@ define([
                     key: 'imageCutoutSrc',
                     editable: true,
                     omitForSupporting: true,
-                    if: 'imageCutoutReplace',
+                    'if': 'imageCutoutReplace',
                     label: 'replacement cutout image URL',
                     validator: 'validateImageCutout',
                     type: 'text'
                 },
                 {
                     key: 'imageCutoutSrcWidth',
-                    if: 'imageCutoutReplace',
+                    'if': 'imageCutoutReplace',
                     label: 'replacement cutout image width',
                     type: 'text'
                 },
                 {
                     key: 'imageCutoutSrcHeight',
-                    if: 'imageCutoutReplace',
+                    'if': 'imageCutoutReplace',
                     label: 'replacement cutout image height',
                     type: 'text'
                 },
@@ -260,6 +265,8 @@ define([
 
             this.group = opts.group;
 
+            this.front = opts.group ? opts.group.front : null;
+
             this.props = asObservableProps(capiProps);
 
             this.fields = asObservableProps(capiFields);
@@ -274,9 +281,12 @@ define([
 
             this.uneditable = opts.uneditable;
 
+            this.slimEditor = opts.slimEditor;
+
             this.state = asObservableProps([
                 'enableContentOverrides',
                 'underDrag',
+                'underControlDrag',
                 'isOpen',
                 'isLoaded',
                 'isEmpty',
@@ -300,20 +310,29 @@ define([
 
             this.editorsDisplay = ko.observableArray();
 
-            this.headlineLength = ko.computed(function() {
+            this.headline = ko.pureComputed(function () {
+                var meta = this.meta, fields = this.fields;
+                if (this.state.enableContentOverrides()) {
+                    return meta.headline() || fields.headline() || (meta.snapType() ? 'No headline!' : 'Loading...');
+                } else {
+                    return '{ ' + meta.customKicker() + ' }';
+                }
+            }, this);
+
+            this.headlineLength = ko.pureComputed(function() {
                 return (this.meta.headline() || this.fields.headline() || '').length;
             }, this);
 
-            this.headlineLengthAlert = ko.computed(function() {
+            this.headlineLengthAlert = ko.pureComputed(function() {
                 return (this.meta.headline() || this.fields.headline() || '').length > vars.CONST.restrictedHeadlineLength;
             }, this);
 
 
-            this.webPublicationTime = ko.computed(function(){
+            this.webPublicationTime = ko.pureComputed(function(){
                 return humanTime(this.props.webPublicationDate());
             }, this);
 
-            this.viewUrl = ko.computed(function() {
+            this.viewUrl = ko.pureComputed(function() {
                 return this.fields.isLive() === 'false' ?
                     vars.CONST.previewBase + '/' + urlAbsPath(this.props.webUrl()) :
                     this.meta.href() || this.props.webUrl();
@@ -324,7 +343,9 @@ define([
                 this.meta.supporting = new Group({
                     parent: self,
                     parentType: 'Article',
-                    omitItem: self.save.bind(self)
+                    omitItem: self.save.bind(self),
+                    front: self.front,
+                    elementHasFocus: self.group.elementHasFocus.bind(self.group)
                 });
 
                 this.meta.supporting.items(_.map((opts.meta || {}).supporting, function(item) {
@@ -337,10 +358,24 @@ define([
             }
 
             if (withCapiData) {
-                this.addCapiData(opts)
+                this.addCapiData(opts);
             } else {
                 this.updateEditorsDisplay();
             }
+
+            this.thumbImage = ko.pureComputed(function () {
+                var meta = this.meta,
+                    fields = this.fields,
+                    state = this.state;
+
+                if (meta.imageReplace() && meta.imageSrc()) {
+                    return meta.imageSrc();
+                } else if (meta.imageCutoutReplace()) {
+                    return meta.imageCutoutSrc() || state.imageCutoutSrcFromCapi() || fields.thumbnail();
+                } else {
+                    return fields.thumbnail();
+                }
+            }, this);
         }
 
         Article.prototype.copy = function() {
@@ -356,7 +391,9 @@ define([
                 sourceItem: sourceItem,
                 sourceGroup: sourceItem.group,
                 targetItem: this,
-                targetGroup: this.group
+                targetGroup: this.group,
+                sourceContext: sourceItem.front,
+                targetContext: this.front
             });
         };
 
@@ -392,7 +429,8 @@ define([
                 meta,
                 field;
 
-            if(!opts.editable) { return; }
+            if (!opts.editable) { return; }
+            if (this.slimEditor && opts.slimEditable !== true) { return; }
 
             key = opts.key;
             meta = self.meta[key] || function() {};
@@ -415,15 +453,16 @@ define([
 
                 revert: function() { meta(undefined); },
 
-                open:   function() { mediator.emit('ui:open', meta, self); },
+                open:   function() { mediator.emit('ui:open', meta, self, self.front); },
 
-                hasFocus: ko.computed(function() {
-                    return meta === vars.model.uiOpenElement();
+                hasFocus: ko.pureComputed(function() {
+                    return this.group.elementHasFocus(meta);
                 }, self),
 
-                displayEditor: ko.computed(function() {
-                    var display = opts.if ? _.some(all, function(editor) { return editor.key === opts.if && self.meta[editor.key](); }) : true;
+                displayEditor: ko.pureComputed(function() {
+                    var display = opts['if'] ? _.some(all, function(editor) { return editor.key === opts['if'] && self.meta[editor.key](); }) : true;
 
+                    display = display && (self.state.enableContentOverrides() || key === 'customKicker');
                     display = display && (opts.ifState ? self.state[opts.ifState]() : true);
                     display = display && (opts.omitForSupporting ? this.group.parentType !== 'Article' : true);
 
@@ -436,22 +475,22 @@ define([
                         .filter(function(editor) { return editor.singleton === opts.singleton; })
                         .filter(function(editor) { return editor.key !== key; })
                         .pluck('key')
-                        .each(function(key) { self.meta[key](false) })
+                        .each(function(key) { self.meta[key](false); });
                     }
 
                     meta(!meta());
 
                    _.chain(all)
-                    .filter(function(editor) { return editor.if === key; })
+                    .filter(function(editor) { return editor['if'] === key; })
                     .first(1)
-                    .each(function(editor) { mediator.emit('ui:open', self.meta[editor.key], self); });
+                    .each(function(editor) { mediator.emit('ui:open', self.meta[editor.key], self, self.front); });
                 },
 
-                length: ko.computed(function() {
-                    return opts.maxLength ? (meta() || field() || '').length : undefined;
+                length: ko.pureComputed(function() {
+                    return opts.maxLength ? opts.maxLength - (meta() || field() || '').length : undefined;
                 }, self),
 
-                lengthAlert: ko.computed(function() {
+                lengthAlert: ko.pureComputed(function() {
                     return opts.maxLength && (meta() || field() || '').length > opts.maxLength;
                 }, self),
 
@@ -464,7 +503,7 @@ define([
                     },
                     owner: self
                 })
-            }
+            };
         };
 
         Article.prototype.validateImageMain = function() {
@@ -475,10 +514,10 @@ define([
                 {
                     maxWidth: 1000,
                     minWidth: 400,
-                    widthAspectRatio: 3,
-                    heightAspectRatio: 5
+                    widthAspectRatio: 5,
+                    heightAspectRatio: 3
                 }
-            )
+            );
         };
 
         Article.prototype.validateImageCutout = function() {
@@ -490,7 +529,7 @@ define([
                     maxWidth: 1000,
                     minWidth: 400
                 }
-            )
+            );
         };
 
         Article.prototype.addCapiData = function(opts) {
@@ -509,7 +548,7 @@ define([
 
             if (missingProps.length) {
                 vars.model.alert('ContentApi is returning invalid data. Fronts may not update.');
-                window.console.error('ContentApi missing: "' + missingProps.join('", "') + '" for ' + this.id());
+                logger.error('ContentApi missing: "' + missingProps.join('", "') + '" for ' + this.id());
             } else {
                 this.state.isLoaded(true);
                 this.state.sectionName(this.props.sectionName());
@@ -524,8 +563,6 @@ define([
                 populateObservables(this.meta, this.metaDefaults);
 
                 this.updateEditorsDisplay();
-
-                this.loadSparkline();
             }
         };
 
@@ -533,25 +570,11 @@ define([
             if (!this.uneditable) {
                 this.editorsDisplay(metaFields.map(this.metaDisplayer, this).filter(identity));
             }
-        }
+        };
 
         Article.prototype.setRelativeTimes = function() {
             this.frontPublicationTime(humanTime(this.frontPublicationDate));
             this.scheduledPublicationTime(humanTime(this.fields.scheduledPublicationDate()));
-        };
-
-        Article.prototype.loadSparkline = function() {
-            var self = this;
-
-            if (vars.model.switches()['facia-tool-sparklines']) {
-                setTimeout(function() {
-                    if (self.state.sparkUrl()) {
-                        self.state.sparkUrl.valueHasMutated();
-                    } else {
-                        self.state.sparkUrl(vars.sparksBase + urlAbsPath(self.props.webUrl()) + (self.frontPublicationDate ? '&markers=' + (self.frontPublicationDate/1000) + ':46C430' : ''));
-                    }
-                }, Math.floor(Math.random() * 5000));
-            }
         };
 
         Article.prototype.get = function() {
@@ -562,15 +585,16 @@ define([
         };
 
         Article.prototype.getMeta = function() {
-            var self = this;
+            var self = this,
+                cleanMeta;
 
-            return _.chain(self.meta)
+            cleanMeta = _.chain(self.meta)
                 .pairs()
                 // execute any knockout values:
                 .map(function(p){ return [p[0], _.isFunction(p[1]) ? p[1]() : p[1]]; })
                 // trim and sanitize strings:
                 .map(function(p){ return [p[0], sanitizeHtml(fullTrim(p[1]))]; })
-                // reject vals that are equivalent to their defaults (if set) OR are falsey
+                // reject vals that are equivalent to their defaults (if set)
                 .filter(function(p){ return _.has(self.metaDefaults, p[0]) ? self.metaDefaults[p[0]] !== p[1] : !!p[1]; })
                 // reject vals that are equivalent to the fields (if any) that they're overwriting:
                 .filter(function(p){ return _.isUndefined(self.fields[p[0]]) || p[1] !== fullTrim(self.fields[p[0]]()); })
@@ -589,8 +613,14 @@ define([
                     obj = obj || {};
                     obj[p[0]] = p[1];
                     return obj;
-                }, undefined)
+                }, {})
                 .value();
+
+            if (this.group && this.group.parentType === 'Collection') {
+                cleanMeta.group = this.group.index + '';
+            }
+
+            return _.isEmpty(cleanMeta) ? undefined : cleanMeta;
         };
 
         Article.prototype.save = function() {
@@ -612,15 +642,17 @@ define([
                         item:       this.id(),
                         position:   this.id(),
                         itemMeta:   this.getMeta(),
-                        live:       vars.state.liveMode(),
-                        draft:     !vars.state.liveMode()
+                        mode:       this.front.mode()
                     }
                 });
             }
         };
 
         Article.prototype.convertToSnap = function() {
-            this.meta.href(this.id());
+            var id = this.id(),
+                href = isGuardianUrl(id) ? '/' + urlAbsPath(id) : id;
+
+            this.meta.href(href);
             this.id(snap.generateId());
             this.updateEditorsDisplay();
         };
@@ -633,14 +665,14 @@ define([
             this.meta.snapType('link');
 
             this.convertToSnap();
-        }
+        };
 
         Article.prototype.convertToLatestSnap = function(kicker) {
             this.meta.snapType('latest');
             this.meta.snapUri(urlAbsPath(this.id()));
 
             this.meta.showKickerCustom(true);
-            this.meta.customKicker(vars.CONST.latestSnapPrefix + kicker);
+            this.meta.customKicker(kicker);
 
             this.meta.headline(undefined);
             this.meta.trailText(undefined);
@@ -659,11 +691,11 @@ define([
             this.meta.headline('Fetching headline...');
 
             authedAjax.request({
-                url: '/http/proxy/' + url + (isOnSite ? '%3Fview=mobile' : ''),
+                url: '/http/proxy/' + url + (isOnSite ? '?view=mobile' : ''),
                 type: 'GET'
             })
             .done(function(response) {
-                var doc = document.createElement("div"),
+                var doc = document.createElement('div'),
                     title,
                     og = {};
 
@@ -680,8 +712,8 @@ define([
                 self.meta.trailText(og.description);
 
                 if(!isOnSite) {
-                    self.meta.customKicker(og.site_name || urlHost(url).replace(/^www\./, ''));
-                    self.meta.showKickerCustom(true);
+                    self.meta.byline(og.site_name || urlHost(url).replace(/^www\./, ''));
+                    self.meta.showByline(true);
                 }
 
                 self.updateEditorsDisplay();
@@ -701,9 +733,18 @@ define([
                     this.editors(metaFields.map(this.metaEditor, this).filter(function (editor) { return editor; }));
                 }
                 this.state.isOpen(true);
-                mediator.emit('ui:open', this.meta.headline, this);
+                mediator.emit(
+                    'ui:open',
+                    _.chain(this.editors())
+                     .filter(function(editor) { return editor.type === 'text' && editor.displayEditor(); })
+                     .map(function(editor) { return editor.meta; })
+                     .first()
+                     .value(),
+                    this,
+                    this.front
+                );
             } else {
-                mediator.emit('ui:open');
+                mediator.emit('ui:open', null, null, this.front);
             }
         };
 
@@ -712,12 +753,32 @@ define([
                 this.state.isOpen(false);
                 this.updateEditorsDisplay();
             }
+            mediator.emit('ui:close', {
+                targetGroup: this.group
+            });
         };
 
         Article.prototype.closeAndSave = function() {
             this.close();
             this.save();
             return false;
+        };
+
+        Article.prototype.drop = function (source, targetGroup, alternateAction) {
+            if (alternateAction) {
+                // the drop target for replacing the article ID is the inner group
+                return;
+            }
+            mediator.emit('collection:updates', {
+                sourceItem: source.sourceItem,
+                sourceGroup: source.sourceGroup,
+                targetItem: this,
+                targetGroup: targetGroup,
+                isAfter: false,
+                mediaItem: source.mediaItem,
+                sourceContext: source.sourceItem.front,
+                targetContext: this.front
+            });
         };
 
         function getMainMediaType(contentApiArticle) {
@@ -741,16 +802,16 @@ define([
                     })
                     .fail(function(err) {
                         undefineObservables(imageSrc, imageSrcWidth, imageSrcHeight);
-                        window.alert(err);
+                        alert(err);
                     });
             } else {
                 undefineObservables(imageSrc, imageSrcWidth, imageSrcHeight);
             }
-        };
+        }
 
         function undefineObservables() {
-            Array.prototype.slice.call(arguments).forEach(function(fn) { fn(undefined); })
-        };
+            Array.prototype.slice.call(arguments).forEach(function(fn) { fn(undefined); });
+        }
 
         function mod(n, m) {
             return ((n % m) + m) % m;
@@ -782,9 +843,9 @@ define([
                     if (keyCode === 9) {
                         e.preventDefault();
                         formField = bindingContext.$rawData;
-                        formFields = _.filter(bindingContext.$parent.editors(), function(ed) { return ed.type === "text" && ed.displayEditor(); });
+                        formFields = _.filter(bindingContext.$parent.editors(), function(ed) { return ed.type === 'text' && ed.displayEditor(); });
                         nextIndex = mod(formFields.indexOf(formField) + (e.shiftKey ? -1 : 1), formFields.length);
-                        mediator.emit('ui:open', formFields[nextIndex].meta, self);
+                        mediator.emit('ui:open', formFields[nextIndex].meta, self, self.front);
                     }
                 });
             }

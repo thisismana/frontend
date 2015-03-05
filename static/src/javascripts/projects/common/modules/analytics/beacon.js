@@ -1,12 +1,31 @@
 define([
     'lodash/collections/map',
     'lodash/objects/isArray',
-    'common/utils/config'
+    'common/utils/config',
+    'common/utils/ajax'
 ], function (
     map,
     isArray,
-    config
+    config,
+    ajax
 ) {
+
+    var canBeacon = !!navigator.sendBeacon;
+
+    function buildCounts(keys) {
+        return map(isArray(keys) ? keys : [keys], function (key) {
+            return 'c=' + key;
+        }).join('&');
+    }
+
+    // note, support is reasonably limited https://developer.mozilla.org/en-US/docs/Web/API/navigator.sendBeacon
+    function beaconCounts(keys) {
+        var url;
+        if (canBeacon) {
+            url = config.page.beaconUrl + '/accept-beacon?' + buildCounts(keys);
+            return navigator.sendBeacon(url, '');
+        }
+    }
 
     return {
         fire: function (path) {
@@ -15,13 +34,34 @@ define([
 
             return img;
         },
-        counts: function (keys) {
-            var query = map(isArray(keys) ? keys : [keys], function (key) {
-                return 'c=' + key;
-            }).join('&');
+        postJson: function (path, jsonString, forceAjax) {
+            var url = (config.page.beaconUrl || '').replace(/^\/\//, window.location.protocol + '//') + path;
 
-            return this.fire('/counts.gif?' + query);
-        }
+            if (canBeacon && !forceAjax) {
+                window.addEventListener('unload', function () {
+                    navigator.sendBeacon(url, jsonString);
+                }, false);
+            } else {
+                ajax({
+                    url: url,
+                    type: 'json',
+                    method: 'post',
+                    contentType: 'application/json',
+                    data: jsonString,
+                    crossOrigin: true
+                });
+            }
+        },
+        counts: function (keys) {
+            if (canBeacon) {
+                return beaconCounts(keys);
+            } else {
+                var query = buildCounts(keys);
+                return this.fire('/counts.gif?' + query);
+            }
+        },
+
+        beaconCounts: beaconCounts
     };
 
 });

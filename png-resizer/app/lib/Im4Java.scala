@@ -1,34 +1,48 @@
 package lib
 
-import java.awt.image.BufferedImage
-import org.im4java.core.{Stream2BufferedImage, ConvertCmd, IMOperation}
-import java.io.ByteArrayOutputStream
-import javax.imageio.ImageIO
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
+
+import org.im4java.core.{Info, ConvertCmd, IMOperation}
+import org.im4java.process.Pipe
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.concurrent.blocking
 
 object Im4Java {
-  def apply(image: BufferedImage, operation: IMOperation, format: String = "png"): Array[Byte] = {
+  def apply(operation: IMOperation, format: String = "png")(imageBytes: Array[Byte]): Array[Byte] = {
     val cmd = new ConvertCmd(false)
-    val s2b = new Stream2BufferedImage
-    cmd.setOutputConsumer(s2b)
 
-    cmd.run(operation, image)
-    val resized = s2b.getImage
+    val pipeIn = new Pipe(new ByteArrayInputStream(imageBytes), null)
+    cmd.setInputProvider(pipeIn)
 
     val baos = new ByteArrayOutputStream
-    ImageIO.write(resized, format,  baos)
+    val s2b = new Pipe(null, baos)
+    cmd.setOutputConsumer(s2b)
+
+    blocking {
+      cmd.run(operation)
+    }
+
     baos.flush()
     baos.toByteArray
   }
 
-  def resizeBufferedImage(image: BufferedImage, width: Int) = {
+  def resizeBufferedImage(width: Int)(imageBytes: Array[Byte]) = Future {
     val operation = new IMOperation
 
-    operation.addImage()
-    operation.sharpen(1.0)
+    operation.addImage("-")
     operation.resize(width)
-    operation.quality(100)
+    operation.sharpen(1.0)
+    operation.quality(0)
     operation.addImage("png:-")
 
-    apply(image, operation)
+    apply(operation)(imageBytes)
   }
+
+  def getWidth(imageBytes: Array[Byte]) = Future {
+    val imageInfo = new Info("png:-", new ByteArrayInputStream(imageBytes),true)
+    (imageInfo.getImageWidth, imageInfo.getImageHeight)
+  }
+
 }

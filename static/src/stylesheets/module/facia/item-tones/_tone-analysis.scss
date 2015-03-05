@@ -1,5 +1,6 @@
 .tone-analysis--item {
-    &.fc-item {
+    &.fc-item,
+    &.flyer {
         background-color: colour(analysis-background);
         color: colour(analysis-default);
     }
@@ -8,13 +9,28 @@
         background-color: darken(colour(analysis-background), 5%);
     }
 
-    .fc-item__container:before {
+    .fc-item__container:before,
+    .flyer__container:before {
         background-color: colour(analysis-accent);
     }
 
+    .flyer__read-more-text {
+        color: colour(analysis-default);
+    }
+
+    .flyer__arrow-icon {
+        fill: colour(analysis-default);
+    }
+
     .fc-item__kicker,
-    .fc-item__byline {
-        color: colour(analysis-accent);
+    .flyer__kicker,
+    .fc-item__byline,
+    .flyer__standfirst {
+        color: colour(news-support-6);
+    }
+
+    .fc-item__kicker--dreamsnap {
+        background-color: mix(#000000, colour(analysis-background), 10%);
     }
 
     .fc-item__meta {

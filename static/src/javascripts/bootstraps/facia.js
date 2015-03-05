@@ -2,34 +2,40 @@ define([
     'bonzo',
     'qwery',
     // Common libraries
+    'common/utils/_',
     'common/utils/$',
-    'common/utils/ajax',
     'common/utils/config',
     'common/utils/detect',
     'common/utils/mediator',
+    'common/utils/request-animation-frame',
     'common/utils/storage',
     'common/utils/to-array',
     // Modules
+    'common/modules/business/stocks',
     'facia/modules/onwards/geo-most-popular-front',
-    'facia/modules/ui/container-fetch-updates',
     'facia/modules/ui/container-toggle',
     'facia/modules/ui/container-show-more',
-    'facia/modules/ui/snaps'
+    'facia/modules/ui/lazy-load-containers',
+    'facia/modules/ui/snaps',
+    'facia/modules/onwards/weather'
 ], function (
     bonzo,
     qwery,
+    _,
     $,
-    ajax,
     config,
     detect,
     mediator,
+    requestAnimationFrame,
     storage,
     toArray,
+    stocks,
     GeoMostPopularFront,
-    containerFetchUpdates,
     ContainerToggle,
-    ContainerShowMore,
-    snaps
+    containerShowMore,
+    lazyLoadContainers,
+    snaps,
+    weather
 ) {
 
     var modules = {
@@ -40,35 +46,21 @@ define([
             },
 
             showContainerShowMore: function () {
-                var containerShowMoreAdd = function () {
-                    var c = document;
-
-                    $('.js-container--fc-show-more', c).each(function (container) {
-                        new ContainerShowMore(container).addShowMoreButton();
-                    });
-                };
                 mediator.addListeners({
-                    'modules:container:rendered': containerShowMoreAdd,
-                    'page:front:ready': containerShowMoreAdd
+                    'modules:container:rendered': containerShowMore.init,
+                    'page:front:ready': containerShowMore.init
                 });
             },
 
             showContainerToggle: function () {
-                var c = document,
-                    containerToggleAdd = function () {
-                        $('.js-container--toggle', c).each(function (container) {
+                var containerToggleAdd = function (context) {
+                        $('.js-container--toggle', $(context || document)[0]).each(function (container) {
                             new ContainerToggle(container).addToggle();
                         });
                     };
                 mediator.addListeners({
                     'page:front:ready': containerToggleAdd,
-                    'ui:container-toggle:add':  containerToggleAdd,
-                    'modules:geomostpopular:ready': containerToggleAdd
-                });
-                mediator.on(/page:front:ready|ui:container-toggle:add|modules:geomostpopular:ready/, function () {
-                    $('.js-container--toggle', c).each(function (container) {
-                        new ContainerToggle(container).addToggle();
-                    });
+                    'modules:geomostpopular:ready': _.partial(containerToggleAdd, '.js-popular-trails')
                 });
             },
 
@@ -78,8 +70,12 @@ define([
                 }
             },
 
-            fetchUpdates: function () {
-                containerFetchUpdates();
+            showWeather: function () {
+                if (config.switches.weather) {
+                    mediator.on('page:front:ready', function () {
+                        weather.init();
+                    });
+                }
             }
         },
 
@@ -90,7 +86,9 @@ define([
                 modules.showContainerShowMore();
                 modules.showContainerToggle();
                 modules.upgradeMostPopularToGeo();
-                modules.fetchUpdates();
+                lazyLoadContainers();
+                stocks();
+                modules.showWeather();
             }
             mediator.emit('page:front:ready');
         };

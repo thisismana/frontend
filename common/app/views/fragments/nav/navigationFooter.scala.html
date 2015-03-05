@@ -1,5 +1,7 @@
 @(metaData: model.MetaData)(implicit request: RequestHeader)
+
 @import common._
+@import views.support.RenderClasses
 
 @defining(Edition(request).navigation) { navigation =>
     <div class="@RenderClasses(Map(
@@ -15,12 +17,13 @@
                     </div>
                 </div>
                 <a class="navigation__toggle js-navigation-toggle" href="#footer-nav" data-link-name="nav : allSections" data-target-nav="js-navigation-footer">
-                    <i class="navigation__toggle-burger honest-burger"><i></i><i></i><i></i></i>
-                    <span class="navigation__toggle-label navigation__toggle-label--open">all<span class="navigation__toggle-label__extra"> sections</span></span>
-                    <span class="navigation__toggle-label navigation__toggle-label--close">close</span>
+                    <i class="burger-icon"></i>
+                    <span class="navigation__toggle-label navigation__toggle-label--open"
+                    aria-haspopup="true" aria-controls="all-sections-popup" aria-label="view all sections">all<span class="navigation__toggle-label__extra"> sections</span></span>
+                    <span class="navigation__toggle-label navigation__toggle-label--close" aria-label="close all sections">close</span>
                 </a>
             </div>
-            <div class="js-transfuse navigation__expandable" data-component="all-footer-nav" data-transfuse-target="js-mega-nav-placeholder" data-link-name="global navigation: footer : sections">
+            <div class="js-mega-nav navigation__expandable" data-component="all-footer-nav" data-link-name="global navigation: footer : sections">
                 @fragments.nav.globalNavigation(metaData)
             </div>
         </div>

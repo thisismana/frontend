@@ -1,9 +1,8 @@
 package test
 
-import com.gu.facia.client.models.{Front, Config}
+import com.gu.facia.client.models.{FrontJson, ConfigJson}
 import common.editions.{Us, Uk}
 import implicits.FakeRequests
-import play.api.libs.json.{JsNull, Json}
 import play.api.test._
 import play.api.test.Helpers._
 import org.scalatest.{BeforeAndAfterAll, DoNotDiscover, Matchers, FlatSpec}
@@ -20,8 +19,8 @@ import services.ConfigAgent
 
   override def beforeAll() {
     ConfigAgent.refreshWith(
-      Config(
-        fronts = Map("music" -> Front(Nil, None, None, None, None, None, None, None, None, None, None, None)),
+      ConfigJson(
+        fronts = Map("music" -> FrontJson(Nil, None, None, None, None, None, None, None, None, None, None, None)),
         collections = Map.empty)
     )
   }
@@ -42,7 +41,7 @@ import services.ConfigAgent
 
     val result = FaciaController.renderFrontRss("film")(fakeRequest)
     status(result) should be(200)
-    header("X-Accel-Redirect", result) should be (Some("/applications/film/rss"))
+    header("X-Accel-Redirect", result) should be (Some("/rss_server/film/rss"))
   }
 
   it should "keep query params for X-Accel-Redirect" in {
@@ -58,7 +57,7 @@ import services.ConfigAgent
 
     val result = FaciaController.renderFrontRss("film")(fakeRequest)
     status(result) should be(200)
-    header("X-Accel-Redirect", result) should be (Some("/applications/film/rss?page=77"))
+    header("X-Accel-Redirect", result) should be (Some("/rss_server/film/rss?page=77"))
   }
 
   it should "not serve X-Accel for a path facia serves" in {

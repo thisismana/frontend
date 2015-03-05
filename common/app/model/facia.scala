@@ -1,8 +1,6 @@
 package model
 
-import com.gu.facia.client.models.CollectionConfig
 import common.{Edition, ExecutionContexts, Logging}
-import layout.FaciaContainer
 import org.joda.time.DateTime
 import play.api.libs.json.Json
 
@@ -14,6 +12,7 @@ case class Collection(curated: Seq[Content],
                       editorsPicks: Seq[Content],
                       mostViewed: Seq[Content],
                       results: Seq[Content],
+                      treats: Seq[Content],
                       displayName: Option[String],
                       href: Option[String],
                       lastUpdated: Option[String],
@@ -28,8 +27,8 @@ case class Collection(curated: Seq[Content],
 }
 
 object Collection {
-  def apply(curated: Seq[Content]): Collection = Collection(curated, Nil, Nil, Nil, None, None, Option(DateTime.now.toString), None, None)
-  def apply(curated: Seq[Content], displayName: Option[String]): Collection = Collection(curated, Nil, Nil, Nil, displayName, None, Option(DateTime.now.toString), None, None)
+  def apply(curated: Seq[Content]): Collection = Collection(curated, Nil, Nil, Nil, Nil, None, None, Option(DateTime.now.toString), None, None)
+  def apply(curated: Seq[Content], displayName: Option[String]): Collection = Collection(curated, Nil, Nil, Nil, Nil, displayName, None, Option(DateTime.now.toString), None, None)
 }
 case class SeoDataJson(
   id: String,
@@ -66,9 +65,11 @@ object SeoData extends ExecutionContexts with Logging {
       SeoData(path, oneWord, webTitleOnePart, None, descriptionFromWebTitle(webTitleOnePart))
   }
 
-  def webTitleFromTail(tail: List[String]): String = tail.flatMap(_.split('-')).flatMap(_.split('/')).map(_.capitalize).mkString(" ")
+  def webTitleFromTail(tail: List[String]): String =
+    tail.flatMap(_.split('-')).flatMap(_.split('/')).map(_.capitalize).mkString(" ")
 
-  def descriptionFromWebTitle(webTitle: String): Option[String] = Option(s"Latest $webTitle news, comment and analysis from the Guardian, the world's leading liberal voice")
+  def descriptionFromWebTitle(webTitle: String): Option[String] =
+    Option(s"Latest $webTitle news, comment and analysis from the Guardian, the world's leading liberal voice")
 
   lazy val empty: SeoData = SeoData("", "", "", None, None)
 }
@@ -82,17 +83,8 @@ case class FrontProperties(
   editorialType: Option[String]
 )
 
-object FrontProperties{
-  implicit val propsFormatter = Json.format[FrontProperties]
+object FrontProperties {
+  implicit val jsonFormat = Json.format[FrontProperties]
 
   val empty = FrontProperties(None, None, None, None, false, None)
-}
-
-object FaciaComponentName {
-  /** TODO remove this once everything is using FaciaContainer */
-  def apply(config: CollectionConfig, collection: Collection): String = {
-    config.displayName.orElse(collection.displayName).map { title =>
-      title.toLowerCase.replace(" ", "-")
-    }.getOrElse("no-name")
-  }
 }

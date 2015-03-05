@@ -1,15 +1,11 @@
 define([
-    'qwery',
     'lodash/objects/defaults',
-    'lodash/functions/once',
     'common/utils/$',
     'common/utils/$css',
     'common/utils/config',
     'common/modules/commercial/create-ad-slot'
 ], function (
-    qwery,
     defaults,
-    once,
     $,
     $css,
     config,
@@ -21,7 +17,7 @@ define([
             opts        = defaults(
                 options || {},
                 {
-                    columnSelector: '.content__secondary-column',
+                    columnSelector: '.js-secondary-column',
                     adSlotContainerSelector: '.js-mpu-ad-slot'
                 }
             ),
@@ -34,7 +30,21 @@ define([
         }
 
         $mainCol = config.page.contentType === 'Article' ? $('.js-content-main-column') : false;
-        adType   = !$mainCol.length || $mainCol.dim().height >= 600 ? 'right' : 'right-small';
+        if (
+            !$mainCol.length ||
+            (config.page.section !== 'football' && $mainCol.dim().height >= 1300) ||
+            (config.page.section === 'football' && $mainCol.dim().height >= 2200)
+        ) {
+            adType = 'right-sticky';
+        } else if ($mainCol.dim().height >= 600) {
+            adType = 'right';
+        } else {
+            adType = 'right-small';
+        }
+
+        if (config.page.contentType === 'Article' && config.page.sponsorshipType === 'advertisement-features') {
+            $('.js-components-container', '.js-secondary-column').addClass('u-h');
+        }
 
         return $(opts.adSlotContainerSelector)
             .append(createAdSlot(adType, 'mpu-banner-ad'));
@@ -42,7 +52,7 @@ define([
 
     return {
 
-        init: once(init)
+        init: init
 
     };
 

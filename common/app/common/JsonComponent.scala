@@ -10,10 +10,6 @@ import play.api.http.ContentTypes._
 
 object JsonComponent extends Results with implicits.Requests {
 
-  type ListOfString = List[String]
-
-  private val ValidCallback = """([a-zA-Z0-9_]+)""".r
-
   def apply(html: Html)(implicit request: RequestHeader): Result = {
     val json = jsonFor("html" -> html)
     resultFor(request, json)
@@ -37,7 +33,10 @@ object JsonComponent extends Results with implicits.Requests {
   def apply(obj: JsObject)(implicit request: RequestHeader): Result = resultFor(request,
     Json.stringify(obj + ("refreshStatus" -> toJson(AutoRefreshSwitch.isSwitchedOn))))
 
-
+  def forJsValue(json: JsValue)(implicit request: RequestHeader): Result = resultFor(
+    request,
+    Json.stringify(json)
+  )
 
   private def jsonFor(metaData: MetaData, items: (String, Any)*)(implicit request: RequestHeader): String = {
     jsonFor(("config" -> Json.parse(views.html.fragments.javaScriptConfig(metaData).body)) +: items: _*)
@@ -54,7 +53,7 @@ object JsonComponent extends Results with implicits.Requests {
         case (name, value: Int) => name -> toJson(value)
         case (name, value: Double) => name -> toJson(value)
         case (name, value: Float) => name -> toJson(value)
-        case (name, value: ListOfString) => name -> toJson(value)
+        case (name, value: List[_]) if value.forall(_.isInstanceOf[String]) => name -> toJson(value.asInstanceOf[List[String]])
         case (name, value: JsValue) => name -> value
       }
     ))
@@ -62,27 +61,14 @@ object JsonComponent extends Results with implicits.Requests {
 
   // Note we are not setting Vary headers here as they get set in CorsVaryHeadersFilter
   // otherwise they get overwritten by the Gzip Filter
-  private def resultFor(request: RequestHeader, json: String): Result = jsonp(request, json)
-    .getOrElse(Ok(json).as(JSON))
-
-  // TODO we probably want to kill off JsonP - I do not think we intend to use it again
-  private def jsonp(request: RequestHeader, json: String): Option[Result] = request.getQueryString("callback").map{
-    case ValidCallback(callback) => Ok(s"$callback($json);").as(withCharset("application/javascript"))
-    case badCallback => Forbidden("bad callback name")
+  private def resultFor(request: RequestHeader, json: String): Result = {
+    Cors(Ok(json).as(JSON))(request)
   }
 }
 
-// you cannot simply return a 404 for JsonP see
-// http://stackoverflow.com/questions/2493974/how-to-callback-a-function-on-404-in-json-ajax-request-with-jquery#answer-2537559
 object JsonNotFound {
 
-  private val ValidCallback = """([a-zA-Z0-9_]+)""".r
-
-  def apply()(implicit request: RequestHeader): Result = jsonp(request).getOrElse(NotFound)
-
-  // TODO we probably want to kill off JsonP - I do not think we intend to use it again
-  private def jsonp(request: RequestHeader) = request.getQueryString("callback").map {
-    case ValidCallback(callback) => Ok( s"""$callback({"status":404});""").as(withCharset("application/javascript"))
-    case badCallback => Forbidden("bad callback name")
+  def apply()(implicit request: RequestHeader): Result = {
+    Cors(NotFound.as(JSON))(request)
   }
 }

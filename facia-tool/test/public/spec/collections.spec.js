@@ -1,27 +1,31 @@
 define([
     'test/utils/async-test',
     'test/utils/drag',
-    'mock-collection',
+    'mock/collection',
+    'mock/stories-visible',
     'test/utils/edit-actions',
     'test/utils/publish-actions',
     'test/utils/dom-nodes'
 ], function(
-    test,
+    sandbox,
     drag,
     mockCollection,
+    mockVisible,
     editAction,
     publishAction,
     dom
 ){
     describe('Collections', function () {
-        test('collections', 'displays the correct timing', function (done) {
+        var test = sandbox('collections');
+
+        test('displays the correct timing', function (done) {
             expect(
                 $('.list-header__timings').text().replace(/\s+/g, ' ')
             ).toMatch('1 day ago by Test');
             done();
         });
 
-        test('collections', '/edits', function (done) {
+        test('/edits', function (done) {
 
             insertInEmptyGroup()
             .then(function (request) {
@@ -351,6 +355,33 @@ define([
                     dom.click(launchButton);
                 });
             }
+        });
+
+        test('stories visible', function (done) {
+            mockVisible.set({
+                'slow/slower/slowest': {
+                    desktop: 1,
+                    mobile: 1
+                }
+            });
+            editAction(function () {
+                var lastGroup = dom.droppableGroup(2, 4);
+                drag.droppable(lastGroup).drop(lastGroup, new drag.Article(dom.latestArticle(5)));
+
+                return {
+                    sport: {
+                        draft: [{
+                            id: 'internal-code/content/5',
+                            meta: {
+                                group: 0
+                            }
+                        }]
+                    }
+                };
+            }).then(function () {
+                expect($('.desktop-indicator .indicator')[1].clientHeight > 100).toBe(true);
+            });
+            done();
         });
     });
 });

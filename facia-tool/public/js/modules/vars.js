@@ -1,11 +1,12 @@
-/* global _: true */
 define([
     'knockout',
+    'underscore',
     'config',
     'fixed-containers',
     'dynamic-containers'
 ], function(
     ko,
+    _,
     pageConfig,
     fixedContainers,
     dynamicContainers
@@ -32,7 +33,18 @@ define([
             'breaking-news'
         ],
 
+        askForConfirmation: [
+            'breaking-news'
+        ],
+
+        restrictedEditor: [
+            'breaking-news'
+        ],
+
         detectPressFailureMs: 10000,
+
+        detectPendingChangesInClipboardOften:  2000,
+        detectPendingChangesInClipboardSeldom: 5000,
 
         maxFronts: 500,
 
@@ -57,6 +69,7 @@ define([
             editorial:  60000 * 2 * (pageConfig.standardFrequency || 5),
             commercial: 60000 * 2 * (pageConfig.lowFrequency || 60)
         },
+        highFrequencyPaths:    ['uk', 'us', 'au', 'uk/sport', 'us/sport', 'au/sport'],
 
         mainDomain:            'www.theguardian.com',
 
@@ -66,36 +79,27 @@ define([
 
         imageCdnDomain:        'guim.co.uk',
         previewBase:           'http://preview.gutools.co.uk',
-        viewer:                'http://s3-eu-west-1.amazonaws.com/facia/responsive-viewer.html',
 
         latestSnapPrefix:      'Latest from ',
 
         ophanBase:             'http://dashboard.ophan.co.uk/graph/breakdown',
+        ophanFrontBase:        'http://dashboard.ophan.co.uk/info?path=',
 
-        sparksServer:          'http://sparklines.ophan.co.uk',
-        sparksParams: {
-            graphs: 'other:3279F1,google:65b045,guardian:376ABF',
-            showStats: 1,
-            showHours: 1,
-            width: 100,
-            height: 35
-        }
+        internalContentPrefix: 'internal-code/content/',
+
+        sparksBatchQueue:      15
     };
-
-    function sparksBaseUrl(args) {
-        return CONST.sparksServer + '/png?' + _.map(args, function(v,k) { return k + '=' + v; }).join('&') + '&page=/';
-    }
 
     return {
         CONST: CONST,
         model: undefined,
-        sparksBase: sparksBaseUrl(CONST.sparksParams),
         priority: pageConfig.priority === 'editorial' ? undefined : pageConfig.priority,
+        identity: {
+            email: pageConfig.email,
+            avatarUrl: pageConfig.avatarUrl
+        },
         state: {
-            config: {},
-            liveMode: ko.observable(false),
-            pending: ko.observable(false),
-            openFronts: {}
+            config: {}
         }
     };
 });

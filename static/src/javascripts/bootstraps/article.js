@@ -4,6 +4,8 @@ define([
     'common/utils/config',
     'common/utils/detect',
     'common/utils/mediator',
+    'common/modules/article/flyers',
+    'common/modules/article/open-module',
     'common/modules/article/truncate',
     'common/modules/article/twitter',
     'common/modules/onward/geo-most-popular',
@@ -16,6 +18,8 @@ define([
     config,
     detect,
     mediator,
+    flyers,
+    openModule,
     truncate,
     twitter,
     geoMostPopular,
@@ -26,7 +30,7 @@ define([
 
     var modules = {
 
-            initOpen: function () {
+            initOpenCta: function () {
                 if (config.switches.openCta && config.page.commentable) {
                     var openCta = new OpenCta(mediator, {
                         discussionKey: config.page.shortUrl.replace('http://gu.com/', '')
@@ -61,15 +65,17 @@ define([
             initSelectionSharing: function () {
                 selectionSharing.init();
             }
-
         },
 
         ready = function () {
-            modules.initOpen();
+            modules.initOpenCta();
             modules.initFence();
             modules.initTruncateAndTwitter();
             modules.initRightHandComponent();
             modules.initSelectionSharing();
+            flyers.upgradeFlyers();
+            flyers.insertTagFlyer();
+            openModule.init();
 
             mediator.emit('page:article:ready');
         };

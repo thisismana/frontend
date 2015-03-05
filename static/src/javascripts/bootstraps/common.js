@@ -1,4 +1,3 @@
-/* global guardian:true */
 /* jshint nonew: false */
 /* TODO - fix module constructors so we can remove the above jshint override */
 define([
@@ -9,13 +8,14 @@ define([
     'qwery',
 
     'common/utils/$',
-    'common/utils/ajax',
     'common/utils/config',
     'common/utils/cookies',
     'common/utils/detect',
+    'common/utils/proximity-loader',
     'common/utils/mediator',
     'common/utils/template',
     'common/utils/url',
+    'common/utils/robust',
 
     'common/modules/analytics/clickstream',
     'common/modules/analytics/foresee-survey',
@@ -23,6 +23,8 @@ define([
     'common/modules/analytics/omniture',
     'common/modules/analytics/register',
     'common/modules/analytics/scrollDepth',
+    'common/modules/analytics/css-logging',
+    'common/modules/analytics/simple-metrics',
     'common/modules/commercial/user-ad-targeting',
     'common/modules/crosswords/thumbnails',
     'common/modules/discussion/comment-count',
@@ -33,28 +35,27 @@ define([
     'common/modules/navigation/navigation',
     'common/modules/navigation/profile',
     'common/modules/navigation/search',
-    'common/modules/onward/breaking-news',
     'common/modules/onward/history',
     'common/modules/onward/more-tags',
     'common/modules/onward/onward-content',
     'common/modules/onward/popular',
     'common/modules/onward/related',
     'common/modules/onward/tonal',
-    'common/modules/release-message',
     'common/modules/social/share-count',
     'common/modules/ui/dropdowns',
     'common/modules/ui/faux-block-link',
     'common/modules/ui/fonts',
+    'common/modules/ui/last-modified',
     'common/modules/ui/message',
     'common/modules/ui/relativedates',
     'common/modules/ui/smartAppBanner',
     'common/modules/ui/tabs',
     'common/modules/ui/toggles',
-    'common/modules/userPrefs',
+    'common/modules/user-prefs',
+    'common/modules/onward/breaking-news',
 
     'bootstraps/identity',
 
-    'text!common/views/release-message.html',
     'text!common/views/release-message-compulsory.html'
 ], function (
     bean,
@@ -64,13 +65,14 @@ define([
     qwery,
 
     $,
-    ajax,
     config,
     cookies,
     detect,
+    proximityLoader,
     mediator,
     template,
     url,
+    robust,
 
     Clickstream,
     Foresee,
@@ -78,6 +80,8 @@ define([
     Omniture,
     register,
     ScrollDepth,
+    logCss,
+    simpleMetrics,
     userAdTargeting,
     crosswordThumbnails,
     CommentCount,
@@ -88,40 +92,34 @@ define([
     navigation,
     Profile,
     Search,
-    breakingNews,
     history,
     MoreTags,
     Onward,
     Popular,
     Related,
     TonalComponent,
-    releaseMessage,
     shareCount,
     Dropdowns,
     fauxBlockLink,
-    Fonts,
+    fonts,
+    LastModified,
     Message,
     RelativeDates,
     smartAppBanner,
     Tabs,
     Toggles,
     userPrefs,
+    breakingNews,
 
     identity,
 
-    releaseMessageTpl,
     releaseMessageCompulsoryTpl
 ) {
 
     var modules = {
 
-            loadFonts: function (ua) {
-                if (config.switches.webFonts && !guardian.shouldLoadFontsAsynchronously) {
-                    var fileFormat     = detect.getFontFormatSupport(ua),
-                        fontStyleNodes = document.querySelectorAll('[data-cache-name].initial');
-
-                    new Fonts(fontStyleNodes, fileFormat).loadFromServerAndApply();
-                }
+            loadFonts: function () {
+                fonts.load();
             },
 
             initId: function () {
@@ -133,7 +131,7 @@ define([
             },
 
             initFastClick: function () {
-                new FastClick(document.body);
+                FastClick.attach(document.body);
             },
 
             initialiseFauxBlockLink: function () {
@@ -162,28 +160,67 @@ define([
             },
 
             transcludeRelated: function () {
-                var opts = {};
+                var opts = {
+                    excludeTags: []
+                };
 
+                // exclude ad features from non-ad feature content
+                if (config.page.sponsorshipType !== 'advertisement-features') {
+                    opts.excludeTags.push('tone/advertisement-features');
+                }
                 // don't want to show professional network content on videos or interactives
                 if ('contentType' in config.page && ['video', 'interactive'].indexOf(config.page.contentType.toLowerCase()) >= 0) {
-                    opts.excludeTag = 'guardian-professional/guardian-professional';
+                    opts.excludeTags.push('guardian-professional/guardian-professional');
                 }
                 new Related(opts).renderRelatedComponent();
             },
 
+            initRelated: function () {
+                if (window.location.hash) {
+                    modules.transcludeRelated();
+                } else {
+                    var relatedEl = qwery('.js-related')[0];
+                    if (relatedEl) {
+                        proximityLoader.add(relatedEl, 1500, modules.transcludeRelated);
+                    }
+                }
+            },
+
             transcludePopular: function () {
+                new Popular().init();
+            },
+
+            initPopular: function () {
                 if (!config.page.isFront) {
-                    new Popular().init();
+                    if (window.location.hash) {
+                        modules.transcludePopular();
+                    } else {
+                        var onwardEl = qwery('.js-popular-trails')[0];
+                        if (onwardEl) {
+                            proximityLoader.add(onwardEl, 1500, modules.transcludePopular);
+                        }
+                    }
                 }
             },
 
             transcludeOnwardContent: function () {
-                if ('seriesId' in config.page) {
+                if ((config.page.seriesId || config.page.blogIds) && config.page.showRelatedContent) {
                     new Onward(qwery('.js-onward'));
                 } else if (config.page.tones !== '') {
                     $('.js-onward').each(function (c) {
                         new TonalComponent().fetch(c, 'html');
                     });
+                }
+            },
+
+            initOnwardContent: function () {
+                if (window.location.hash) {
+                    modules.transcludeOnwardContent();
+                } else {
+                    var onwardEl = qwery('.js-onward')[0];
+                    if (onwardEl) {
+                        proximityLoader.add(onwardEl, 1500, modules.transcludeOnwardContent);
+                    }
                 }
             },
 
@@ -240,92 +277,49 @@ define([
             },
 
             cleanupCookies: function () {
-                cookies.cleanUp(['mmcore.pd', 'mmcore.srv', 'mmid', 'GU_ABFACIA', 'GU_FACIA', 'GU_ALPHA']);
-                cookies.cleanUpDuplicates(['GU_VIEW']);
-            },
-
-            // opt-in to the responsive alpha
-            optIn: function () {
-                var countMeIn = /#countmein/.test(window.location.hash);
-                if (countMeIn) {
-                    cookies.add('GU_VIEW', 'responsive', 365);
-                }
+                cookies.cleanUp(['mmcore.pd', 'mmcore.srv', 'mmid', 'GU_ABFACIA', 'GU_FACIA', 'GU_ALPHA', 'GU_ME', 'at']);
             },
 
             // display a flash message to devices over 600px who don't have the mobile cookie
             displayReleaseMessage: function () {
+                var releaseMessage = new Message('alpha', {pinOnHide: true}),
+                    feedbackLink = 'https://www.surveymonkey.com/s/theguardian-beta-feedback';
 
-                var exitLink, feedbackLink, shift,
-                    path = (document.location.pathname) ? document.location.pathname : '/',
-                    releaseMessage = new Message('alpha', {pinOnHide: true});
-
-                if (
-                    config.switches.releaseMessage &&
-                    config.page.showClassicVersion &&
-                    (detect.getBreakpoint() !== 'mobile')
-                ) {
-                    // force the visitor in to the alpha release for subsequent visits
-                    cookies.add('GU_VIEW', 'responsive', 365);
-
-                    exitLink = '/preference/platform/classic?page=' + encodeURIComponent(path + '?view=classic');
-
-                    feedbackLink = 'https://www.surveymonkey.com/s/theguardian-' +
-                        (config.page.edition || 'uk').toLowerCase() + '-edition-feedback';
-
-                    // The shift cookie may be 'in|...', 'ignore', or 'out'.
-                    shift = cookies.get('GU_SHIFT') || '';
-
-                    if (config.page.edition === 'US' || /in\|/.test(shift)) {
-                        releaseMessage.show(template(
-                            releaseMessageCompulsoryTpl,
-                            {
-                                feedbackLink: feedbackLink
-                            }
-                        ));
-                    } else {
-                        releaseMessage.show(template(
-                            releaseMessageTpl,
-                            {
-                                exitLink:     exitLink,
-                                feedbackLink: feedbackLink
-                            }
-                        ));
-                    }
+                if (config.switches.releaseMessage && (detect.getBreakpoint() !== 'mobile')) {
+                    releaseMessage.show(template(
+                        releaseMessageCompulsoryTpl, {
+                            feedbackLink: feedbackLink
+                        }
+                    ));
                 }
             },
 
-            displayBreakingNews: function () {
-                if (config.switches.breakingNews) {
-                    breakingNews();
-                }
-            },
-
-            unshackleParagraphs: function () {
-                if (userPrefs.isOff('para-indents')) {
-                    $('.paragraph-spacing--indents').removeClass('paragraph-spacing--indents');
-                }
-            },
-
-            logReadingHistory: function () {
+            updateHistory: function () {
                 mediator.on('page:common:ready', function () {
                     if (config.page.contentType !== 'Network Front') {
-                        history.log({
-                            id: '/' + config.page.pageId,
-                            meta: {
-                                section: config.page.section,
-                                keywords: config.page.keywordIds && (config.page.keywordIds + '').split(',').slice(0, 5)
-                            }
-                        });
+                        history.logSummary(config.page);
+                    }
+
+                    if (config.page.contentType === 'Video') {
+                        history.logHistory(config.page);
                     }
                 });
+            },
+
+            showHistoryInMegaNav: function () {
+                if (config.switches.historyTags) {
+                    mediator.once('modules:nav:open', function () {
+                        history.showInMegaNav();
+                    });
+                }
             },
 
             initAutoSignin: function () {
-                mediator.on('page:common:ready', function () {
-                    if (config.switches && config.switches.facebookAutosignin && detect.getBreakpoint() !== 'mobile') {
+                if (config.switches.facebookAutosignin && detect.getBreakpoint() !== 'mobile') {
+                    mediator.on('page:common:ready', function () {
                         new AutoSignin().init();
-                    }
-                });
+                    });
+                }
             },
 
             windowEventListeners: function () {
@@ -385,8 +379,8 @@ define([
             },
 
             initDiscussion: function () {
-                mediator.on('page:common:ready', function () {
-                    if (config.switches.discussion) {
+                if (config.switches.discussion) {
+                    mediator.on('page:common:ready', function () {
                         CommentCount.init();
                         if (config.page.commentable) {
                             var el = qwery('.discussion')[0];
@@ -394,8 +388,8 @@ define([
                                 new DiscussionLoader().attachTo(el);
                             }
                         }
-                    }
-                });
+                    });
+                }
             },
 
             testCookie: function () {
@@ -405,8 +399,13 @@ define([
                 }
             },
 
-            initReleaseMessage: function () {
-                releaseMessage.init();
+            adTestCookie: function () {
+                var queryParams = url.getUrlVars();
+                if (queryParams.adtest === 'clear') {
+                    cookies.remove('adtest');
+                } else if (queryParams.adtest) {
+                    cookies.add('adtest', encodeURIComponent(queryParams.adtest), 10);
+                }
             },
 
             initOpenOverlayOnClick: function () {
@@ -436,49 +435,81 @@ define([
 
             initShareCounts: function () {
                 shareCount.init();
+            },
+
+            initLastModified: function () {
+                LastModified.init();
+            },
+
+            loadBreakingNews: function () {
+                if (config.switches.breakingNews) {
+                    mediator.on('page:common:ready', breakingNews);
+                }
+            },
+
+            runCssLogging: function () {
+                if (config.switches.cssLogging) {
+                    mediator.on('page:common:ready', logCss);
+                }
+            },
+
+            initSimpleMetrics: function () {
+                mediator.on('page:common:ready', function () {
+                    simpleMetrics.init();
+                });
+            },
+
+            initPublicApi: function () {
+                // BE CAREFUL what you expose here...
+                window.guardian.api = {
+                    logCss: logCss
+                };
             }
 
         },
-        ready = function () {
-            modules.loadFonts(navigator.userAgent);
-            modules.initId();
-            modules.initUserAdTargeting();
-            modules.initDiscussion();
-            modules.initFastClick();
-            modules.testCookie();
-            modules.windowEventListeners();
-            modules.initShareCounts();
-            modules.initialiseFauxBlockLink();
-            modules.checkIframe();
-            modules.showTabs();
-            modules.initialiseTopNavItems();
-            modules.initialiseNavigation();
-            modules.displayBreakingNews();
-            modules.showToggles();
-            modules.showRelativeDates();
-            modules.initClickstream();
-            modules.optIn();
-            modules.displayReleaseMessage();
-            modules.logReadingHistory();
-            modules.unshackleParagraphs();
-            modules.initAutoSignin();
-            modules.augmentInteractive();
-            modules.runForseeSurvey();
-            modules.startRegister();
-            modules.repositionComments();
-            modules.showMoreTagsLink();
-            modules.showSmartBanner();
-            modules.logLiveStats();
-            modules.loadAnalytics();
-            modules.cleanupCookies();
-            modules.transcludePopular();
-            modules.transcludeRelated();
-            modules.transcludeOnwardContent();
-            modules.initReleaseMessage();
-            modules.initOpenOverlayOnClick();
-            crosswordThumbnails.init();
 
-            mediator.emit('page:common:ready');
+        ready = function () {
+            robust('c-fonts',           modules.loadFonts);
+            robust('c-identity',        modules.initId);
+            robust('c-adverts',         modules.initUserAdTargeting);
+            robust('c-discussion',      modules.initDiscussion);
+            robust('c-fast-click',      modules.initFastClick);
+            robust('c-test-cookie',     modules.testCookie);
+            robust('c-ad-cookie',       modules.adTestCookie);
+            robust('c-event-listeners', modules.windowEventListeners);
+            robust('c-breaking-news',   modules.loadBreakingNews);
+            robust('c-shares',          modules.initShareCounts);
+            robust('c-last-modified',   modules.initLastModified);
+            robust('c-block-link',      modules.initialiseFauxBlockLink);
+            robust('c-iframe',          modules.checkIframe);
+            robust('c-tabs',            modules.showTabs);
+            robust('c-top-nav',         modules.initialiseTopNavItems);
+            robust('c-init-nav',        modules.initialiseNavigation);
+            robust('c-toggles',         modules.showToggles);
+            robust('c-dates',           modules.showRelativeDates);
+            robust('c-clickstream',     modules.initClickstream);
+            robust('c-release-message', modules.displayReleaseMessage);
+            robust('c-history',         modules.updateHistory);
+            robust('c-sign-in', modules.initAutoSignin);
+            robust('c-interactive', modules.augmentInteractive);
+            robust('c-history-nav', modules.showHistoryInMegaNav);
+            robust('c-forsee', modules.runForseeSurvey);
+            robust('c-start-register', modules.startRegister);
+            robust('c-comments', modules.repositionComments);
+            robust('c-tag-links', modules.showMoreTagsLink);
+            robust('c-smart-banner', modules.showSmartBanner);
+            robust('c-log-stats', modules.logLiveStats);
+            robust('c-analytics',       modules.loadAnalytics);
+            robust('c-cookies', modules.cleanupCookies);
+            robust('c-popular', modules.initPopular);
+            robust('c-related', modules.initRelated);
+            robust('c-onward', modules.initOnwardContent);
+            robust('c-overlay', modules.initOpenOverlayOnClick);
+            robust('c-css-logging', modules.runCssLogging);
+            robust('c-public-api', modules.initPublicApi);
+            robust('c-simple-metrics', modules.initSimpleMetrics);
+            robust('c-crosswords', crosswordThumbnails.init);
+            robust('c-ready',           function () { mediator.emit('page:common:ready'); });
         };
 
     return {

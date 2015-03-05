@@ -1,6 +1,6 @@
 package layout
 
-import com.gu.facia.client.models.CollectionConfig
+import com.gu.facia.client.models.CollectionConfigJson
 import model.{Content, FaciaImageElement, Trail}
 import org.joda.time.DateTime
 import org.scala_tools.time.Imports
@@ -45,10 +45,11 @@ class SliceWithCardsTest extends FlatSpec with Matchers with GeneratorDrivenProp
         cardFixtures,
         layout,
         ContainerLayoutContext.empty,
-        CollectionConfig.emptyConfig,
-        DesktopBehaviour
+        CollectionConfigJson.emptyConfig,
+        DesktopBehaviour,
+        showSeriesAndBlogKickers = false
       )._2.length shouldEqual
-        (0 max (NumberOfFixtures - layout.columns.map(SliceWithCards.itemsToConsume).sum))
+        (0 max (NumberOfFixtures - layout.columns.map(_.numItems).sum))
     }
   }
 
@@ -58,8 +59,9 @@ class SliceWithCardsTest extends FlatSpec with Matchers with GeneratorDrivenProp
         cardFixtures,
         layout,
         ContainerLayoutContext.empty,
-        CollectionConfig.emptyConfig,
-        DesktopBehaviour
+        CollectionConfigJson.emptyConfig,
+        DesktopBehaviour,
+        showSeriesAndBlogKickers = false
       )
 
       def idFromTrail(trail: Trail) = trail match {
@@ -77,12 +79,13 @@ class SliceWithCardsTest extends FlatSpec with Matchers with GeneratorDrivenProp
         cardFixtures,
         layout,
         ContainerLayoutContext.empty,
-        CollectionConfig.emptyConfig,
-        DesktopBehaviour
+        CollectionConfigJson.emptyConfig,
+        DesktopBehaviour,
+        showSeriesAndBlogKickers = false
       )._1
 
       for (column <- slice.columns) {
-        column.cards.length should be <= SliceWithCards.itemsToConsume(column.column)
+        column.cards.length should be <= column.column.numItems
       }
     }
   }

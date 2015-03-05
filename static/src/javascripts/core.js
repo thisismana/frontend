@@ -2,33 +2,25 @@ require([
     // 3rd party libs
     'raven',
     'lodash/main',
-    'lodash/utilities/mixin',
+    'picturefill',
 
     // utilities
     'common/utils/_',
     'common/utils/$',
-    'common/utils/$css',
     'common/utils/ajax',
-    'common/utils/atob',
-    'common/utils/clamp',
     'common/utils/config',
     'common/utils/cookies',
     'common/utils/detect',
-    'common/utils/easing',
-    'common/utils/get-property',
     'common/utils/mediator',
-    'common/utils/page',
-    'common/utils/request-animation-frame',
-    'common/utils/scroller',
+    'common/utils/robust',
     'common/utils/storage',
     'common/utils/template',
-    'common/utils/time',
-    'common/utils/to-array',
     'common/utils/url',
-    'common/utils/user-timing',
+    'common/utils/fastdom-errors',
 
     // shared modules
     'common/modules/analytics/beacon',
+    'common/modules/article/spacefinder',
     'common/modules/commercial/badges',
     'common/modules/commercial/create-ad-slot',
     'common/modules/commercial/build-page-targeting',
@@ -38,5 +30,6 @@ require([
     'common/modules/lazyload',
     'common/modules/ui/images',
     'common/modules/ui/tabs',
-    'common/modules/userPrefs'
+    'common/modules/user-prefs',
+    'common/views/svgs'
 ], function () {});

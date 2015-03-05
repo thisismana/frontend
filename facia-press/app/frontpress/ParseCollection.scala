@@ -3,7 +3,7 @@ package services
 import com.gu.facia.client.models.{Trail, _}
 import com.gu.contentapi.client.model.{Content => ApiContent}
 import common._
-import conf.Switches.FaciaToolCachedContentApiSwitch
+import conf.Switches.{FaciaToolCachedContentApiSwitch, FaciaTreats}
 import conf.{Configuration, LiveContentApi}
 import contentapi.{ContentApiClient, QueryDefaults}
 import fronts.FrontsApi
@@ -12,11 +12,9 @@ import org.apache.commons.codec.digest.DigestUtils._
 import org.joda.time.DateTime
 import performance._
 import services.ParseCollectionJsonImplicits._
-
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Try
-
 
 object Path {
   def unapply[T](uri: String) = Some(uri.split('?')(0))
@@ -32,11 +30,11 @@ object Seg {
 
 //Curated and editorsPicks are the same, we will get rid of either
 case class Result(
-                   curated: List[ApiContent],
-                   editorsPicks: List[ApiContent],
-                   mostViewed: List[ApiContent],
-                   contentApiResults: List[ApiContent]
-                   )
+  curated: List[ApiContent],
+  editorsPicks: List[ApiContent],
+  mostViewed: List[ApiContent],
+  contentApiResults: List[ApiContent]
+)
 
 object Result {
   val empty: Result = Result(Nil, Nil, Nil, Nil)
@@ -52,7 +50,7 @@ trait ParseCollection extends ExecutionContexts with QueryDefaults with Logging 
   val cacheDuration: FiniteDuration = 5.minutes
 
   val client: ContentApiClient
-  def retrieveItemsFromCollectionJson(collection: com.gu.facia.client.models.Collection): Seq[Trail]
+  def retrieveItemsFromCollectionJson(collection: com.gu.facia.client.models.CollectionJson): Seq[Trail]
 
   case class InvalidContent(id: String) extends Exception(s"Invalid Content: $id")
   val showFieldsQuery: String = FaciaDefaults.showFields
@@ -68,10 +66,9 @@ trait ParseCollection extends ExecutionContexts with QueryDefaults with Logging 
     def empty: CollectionMeta = CollectionMeta(None, None, None, None, None)
   }
 
-  def getCollection(id: String, config: CollectionConfig, edition: Edition): Future[Collection] = {
-    val collection: Future[Option[com.gu.facia.client.models.Collection]] =
+  def getCollection(id: String, config: CollectionConfigJson, edition: Edition): Future[Collection] = {
+    val collection: Future[Option[com.gu.facia.client.models.CollectionJson]] =
       FrontsApi.amazonClient.collection(id)
-        .map(Option.apply)
         .recover { case t: Throwable =>
           log.warn(s"Could not get Collection ID $id: $t")
           None
@@ -83,6 +80,15 @@ trait ParseCollection extends ExecutionContexts with QueryDefaults with Logging 
       getArticles(items, edition)
     }
 
+    val treatsFuture: Future[Seq[Content]] =
+      if (FaciaTreats.isSwitchedOn)
+          collection.flatMap { collectionOption =>
+            val items: Seq[Trail] =
+              collectionOption.flatMap(_.treats).getOrElse(Nil)
+            getArticles(items, edition)}
+      else
+        Future.successful(Nil)
+
     val executeDraftContentApiQuery: Future[Result] =
       config.apiQuery.map(executeContentApiQueryViaCache(_, edition)).getOrElse(Future.successful(Result.empty))
 
@@ -90,11 +96,13 @@ trait ParseCollection extends ExecutionContexts with QueryDefaults with Logging 
       executeRequest <- executeDraftContentApiQuery
       curatedRequest <- curatedItems
       collectionOption <- collection
+      treats <- treatsFuture
     } yield Collection(
       curated = curatedRequest,
       editorsPicks = executeRequest.editorsPicks.map(makeContent),
       mostViewed = executeRequest.mostViewed.map(makeContent),
       results = executeRequest.contentApiResults.map(makeContent),
+      treats = treats,
       displayName = collectionOption.flatMap(_.displayName),
       href = collectionOption.flatMap(_.href),
       lastUpdated = collectionOption.map(_.lastUpdated.toString()),
@@ -108,15 +116,18 @@ trait ParseCollection extends ExecutionContexts with QueryDefaults with Logging 
       .filter(c => c.meta.exists(_.snapType.exists(_ == "latest")))
       .flatMap(c => c.meta.flatMap(_.snapUri))
 
-    Future.traverse(latestSnapSearches) { id =>
-      LiveContentApi.item(id, Edition.defaultEdition)
+    val lastestSnaps = Future.traverse(latestSnapSearches) { id =>
+      client.getResponse(LiveContentApi.item(id, Edition.defaultEdition)
         .showFields(showFieldsWithBodyQuery)
         .pageSize(1)
-        .response
-        .map(_.results.headOption.map(id -> _))
+      ).map(_.results.headOption.map(id -> _))
     }
     .map(_.flatten)
     .map(_.toMap)
+
+    lastestSnaps.onSuccess { case m => log.info(s"Successfully requested ${m.size} Dreamsnaps")}
+    lastestSnaps.onFailure { case t: Throwable => log.info(s"Dreamsnaps request failed: $t")}
+    lastestSnaps
   }
 
   def getArticles(collectionItems: Seq[Trail], edition: Edition): Future[Seq[Content]] = {
@@ -201,13 +212,11 @@ trait ParseCollection extends ExecutionContexts with QueryDefaults with Logging 
                                                   edition: Edition): Future[Seq[ApiContent]] = {
     lazy val itemIds: Seq[String] = collectionItems.map(_.get)
     lazy val collectionIdsQuery: String = itemIds.mkString(",")
-    lazy val response = client.search(edition)
+    lazy val response = client.getResponse(client.search(edition)
       .ids(collectionIdsQuery)
       .showFields(showFieldsWithBodyQuery)
       .pageSize(Configuration.faciatool.frontPressItemSearchBatchSize)
-      .response
-      .map(Option.apply)
-      .recover {
+    ).map(Option.apply).recover {
       case apiError: com.gu.contentapi.client.GuardianContentApiError if apiError.httpStatus == 404 => {
         log.warn(s"Content API Error: 404 for collectionIds $collectionIdsQuery")
         None
@@ -270,7 +279,7 @@ trait ParseCollection extends ExecutionContexts with QueryDefaults with Logging 
           val newSearch = queryParamsWithEdition.foldLeft(search) {
             case (query, (key, value)) => query.stringParam(key, value)
           }.showFields(showFieldsQuery)
-          newSearch.response map { searchResponse =>
+          client.getResponse(newSearch) map { searchResponse =>
             Result(
               curated = Nil,
               editorsPicks = Nil,
@@ -286,7 +295,7 @@ trait ParseCollection extends ExecutionContexts with QueryDefaults with Logging 
           val newSearch = queryParamsWithEdition.foldLeft(search) {
             case (query, (key, value)) => query.stringParam(key, value)
           }.showFields(showFieldsQuery)
-          newSearch.response map { itemResponse =>
+          client.getResponse(newSearch) map { itemResponse =>
             Result(
               curated = Nil,
               editorsPicks = itemResponse.editorsPicks,
@@ -334,7 +343,7 @@ trait ParseCollection extends ExecutionContexts with QueryDefaults with Logging 
 }
 
 object LiveCollections extends ParseCollection {
-  def retrieveItemsFromCollectionJson(collection: com.gu.facia.client.models.Collection): Seq[Trail] =
+  def retrieveItemsFromCollectionJson(collection: com.gu.facia.client.models.CollectionJson): Seq[Trail] =
     collection.live
 
   override val client: ContentApiClient = LiveContentApi

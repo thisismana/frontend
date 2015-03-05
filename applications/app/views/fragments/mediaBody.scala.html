@@ -7,7 +7,13 @@
 @defining(page.media, page.media match { case _: Audio => "audio" case _ => "video" }){ case (media, mediaType) =>
 <div class="l-side-margins l-side-margins--media">
 
-    <article class="content content--media content--media--@mediaType tonal tonal--@articleToneClass(media) @if(media.body.nonEmpty) {content--has-body}"
+    <article class="@RenderClasses(
+            Map(
+                "content--has-body" -> media.body.nonEmpty,
+                "content--advertisement-feature" -> page.media.isAdvertisementFeature
+            ),
+            "content", "content--media", s"content--media--$mediaType", "tonal", s"tonal--${articleToneClass(media)}"
+        )"
         itemprop="mainContentOfPage" itemscope itemtype="@media.schemaType" role="main">
 
         @fragments.headTonal(media)
@@ -33,7 +39,7 @@
                                             audio,
                                             audioElement,
                                             audio.headline,
-                                            autoPlay = true
+                                            autoPlay = false
                                         ))
                                     }
                                     </figure>
@@ -67,8 +73,8 @@
                                                 autoPlay = true,
                                                 showControlsAtStart = true,
                                                 endSlatePath = video.endSlatePath,
-                                                None
-                                            ))
+                                                overrideIsRatioHd = None
+                                            ), true)
                                         }
                                     </figure>
                                 }

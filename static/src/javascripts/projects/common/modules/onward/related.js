@@ -2,24 +2,24 @@ define([
     'bonzo',
     'qwery',
     'lodash/arrays/intersection',
+    'lodash/collections/map',
     'common/utils/$',
     'common/utils/config',
     'common/utils/mediator',
     'common/modules/analytics/register',
     'common/modules/lazyload',
-    'common/modules/ui/expandable',
-    'common/modules/ui/images'
+    'common/modules/ui/expandable'
 ], function (
     bonzo,
     qwery,
     intersection,
+    map,
     $,
     config,
     mediator,
     register,
     LazyLoad,
-    Expandable,
-    images
+    Expandable
 ) {
 
     var opts;
@@ -62,7 +62,7 @@ define([
 
     Related.prototype.renderRelatedComponent = function () {
         var relatedUrl, popularInTag, componentName, container,
-            fetchRelated = config.switches.relatedContent && config.switches.ajaxRelatedContent && config.page.showRelatedContent;
+            fetchRelated = config.switches.relatedContent && config.page.showRelatedContent;
 
         if (config.page && config.page.hasStoryPackage && !Related.overrideUrl) {
             new Expandable({
@@ -70,11 +70,10 @@ define([
                 expanded: false,
                 showCount: false
             }).init();
-            mediator.emit('modules:related:loaded');
 
         } else if (fetchRelated) {
-
             container = document.body.querySelector('.js-related');
+
             if (container) {
                 popularInTag = this.popularInTagOverride();
                 componentName = (!Related.overrideUrl && popularInTag) ? 'related-popular-in-tag' : 'related-content';
@@ -84,8 +83,10 @@ define([
 
                 relatedUrl = Related.overrideUrl || popularInTag || '/related/' + config.page.pageId + '.json';
 
-                if (opts.excludeTag) {
-                    relatedUrl += '?exclude-tag=' + opts.excludeTag;
+                if (opts.excludeTags && opts.excludeTags.length) {
+                    relatedUrl += '?' + map(opts.excludeTags, function (tag) {
+                        return 'exclude-tag=' + tag;
+                    }).join('&');
                 }
 
                 new LazyLoad({
@@ -97,15 +98,17 @@ define([
                                 $('.more-on-this-story').addClass('u-h');
                             }
                         }
+                        var relatedContainer = container.querySelector('.related-content'),
+                            images = container.querySelector('.fc-container');
 
-                        var relatedTrails = container.querySelector('.related-trails');
-                        new Expandable({dom: relatedTrails, expanded: false, showCount: false}).init();
+                        new Expandable({dom: relatedContainer, expanded: false, showCount: false}).init();
                         // upgrade images
-                        images.upgrade(relatedTrails);
-                        mediator.emit('modules:related:loaded');
+                        mediator.emit('ui:images:upgradePicture', images);
+                        mediator.emit('modules:related:loaded', container);
                         register.end(componentName);
                     },
                     error: function () {
+                        bonzo(container).remove();
                         register.error(componentName);
                     }
                 }).load();

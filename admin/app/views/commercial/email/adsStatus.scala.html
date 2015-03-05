@@ -1,25 +1,40 @@
-@(pageskinsWithoutEditions: Seq[dfp.PageSkinSponsorship], geotargetedAdFeatures: Seq[dfp.Sponsorship])
+@(report: jobs.AdStatusReport)
+@import dfp.GuLineItem
 
-@if(pageskinsWithoutEditions.isEmpty && geotargetedAdFeatures.isEmpty){
-No known targeting problems.
+@reportLogoLineItems(lineItems: Seq[GuLineItem], description: String) = {
+@if(lineItems.nonEmpty) {
+    <div>
+        <p>@description:</p>
+        <ul>@for(lineItem <- lineItems) {
+            <li>@{lineItem.id}: @{lineItem.name}</li>
+        }</ul>
+        <p>See https://frontend.gutools.co.uk/analytics/commercial/sponsorships</p>
+    </div>
+}
+}
+
+@if(report.isEmpty) {
+
+    <p>No known targeting problems.</p>
+
 } else {
-There are some targeting problems:
 
-@if(pageskinsWithoutEditions.nonEmpty) {
-These pageskins have no edition set:
-@for(pageskin <- pageskinsWithoutEditions){
-    @{pageskin.lineItemId}: @{pageskin.lineItemName}
-}
+    <p>There are some targeting problems:</p>
 
-See https://frontend.gutools.co.uk/analytics/commercial/pageskins
-}
-@if(geotargetedAdFeatures.nonEmpty) {
-These ad feature logos are geotargeted:
-@for(adFeature <- geotargetedAdFeatures){
-    @{adFeature.lineItemId}: @{adFeature.tags.mkString(", ")}
-}
+    @if(report.pageskinsWithoutEditions.nonEmpty) {
+        <div>
+            <p>These pageskins have no edition set:</p>
+            <ul>@for(pageskin <- report.pageskinsWithoutEditions) {
+                <li>@{pageskin.lineItemId}: @{pageskin.lineItemName}</li>
+            }</ul>
+            <p>See https://frontend.gutools.co.uk/analytics/commercial/pageskins</p>
+        </div>
+    }
 
-See https://frontend.gutools.co.uk/analytics/commercial/sponsorships
-}
+    @reportLogoLineItems(report.geotargetedAdFeatures, "These ad feature logos are geotargeted")
+
+    @reportLogoLineItems(report.sponsorshipsWithoutSponsors, "These logos have no sponsor set up")
+
+    @reportLogoLineItems(report.noSuchTargetedTags, "These logos are targeting a tag that doesn't exist")
 
 }

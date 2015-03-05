@@ -50,6 +50,10 @@ module.exports = function(grunt, options) {
                 dest: options.staticTargetDir + 'stylesheets'
             }]
         },
+        pxCss: {
+            src: [options.staticTargetDir + 'stylesheets/global.css'],
+            dest: options.staticTargetDir + 'stylesheets/global.px.css'
+        },
         images: {
             files: [{
                 expand: true,
@@ -90,6 +94,14 @@ module.exports = function(grunt, options) {
                 cwd: options.staticHashDir + 'assets',
                 src: ['**/assets.map'],
                 dest: 'common/conf/assets'
+            }]
+        },
+        inlineSVGs: {
+            files: [{
+                expand: true,
+                cwd: 'static/src/inline-svgs',
+                src: ['**/*.svg'],
+                dest: 'common/conf/assets/inline-svgs'
             }]
         },
         /**

@@ -1,6 +1,6 @@
 package controllers
 
-import com.gu.facia.client.models.CollectionConfig
+import com.gu.facia.client.models.CollectionConfigJson
 import common._
 import layout.{CollectionEssentials, FaciaContainer}
 import model.{FrontProperties, Audio, Cached}
@@ -37,15 +37,15 @@ object MostViewedAudioController extends Controller with Logging with ExecutionC
   private def renderMostViewedAudio(audios: Seq[Audio], mediaType: String)(implicit request: RequestHeader) = Cached(900) {
     val dataId = s"$mediaType/most-viewed"
     val displayName = Some(s"popular in $mediaType")
-    val config = CollectionConfig.withDefaults(displayName = displayName)
+    val config = CollectionConfigJson.withDefaults(displayName = displayName)
 
     val html = views.html.fragments.containers.facia_cards.container(
       FaciaContainer(
         1,
         Fixed(FixedContainers.fixedSmallSlowIV),
         CollectionConfigWithId(dataId, config),
-        CollectionEssentials(audios take 4, displayName, None, None, None)
-      ),
+        CollectionEssentials(audios take 4, Nil, displayName, None, None, None)
+      ).withTimeStamps,
       FrontProperties.empty
     )(request)
 

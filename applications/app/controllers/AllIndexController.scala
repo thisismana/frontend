@@ -5,11 +5,12 @@ import scala.concurrent.Future
 import conf.LiveContentApi
 import common.{Logging, ExecutionContexts, Edition}
 import model.{Cached, Tag, Content, Section}
-import services.IndexPage
+import services.{ConfigAgent, IndexPage}
 import views.support.PreviousAndNext
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTimeZone, DateTime}
 import implicits.{ItemResponses, Dates}
+import LiveContentApi.getResponse
 
 object AllIndexController extends Controller with ExecutionContexts with ItemResponses with Dates with Logging {
 
@@ -31,16 +32,19 @@ object AllIndexController extends Controller with ExecutionContexts with ItemRes
     Cached(300)(MovedPermanently(s"/$path/all"))
   }
 
-  def all(path: String) = Action.async { implicit request =>
-    val today = DateTime.now(Edition(request).timezone)
+  def all(path: String) = Action.async { request =>
+    val edition = Edition(request)
 
-    loadLatest(path, today).map { _.map { index =>
-      val yesterday = today.minusDays(1)
-      Ok(views.html.all(index, PreviousAndNext(Some(s"/$path/${urlFormat(yesterday)}/all"), None)))
-    }.getOrElse(NotFound)}.map(Cached(300)(_))
+    if (ConfigAgent.shouldServeFront(path) ||
+      ConfigAgent.shouldServeEditionalisedFront(edition, path)) {
+      IndexController.render(path)(request)
+    } else {
+      /** No front exists, so 'all' is the same as the tag page - redirect there */
+      Future.successful(Cached(300)(MovedPermanently(s"/$path")))
+    }
   }
 
-  def allOn(path: String, day: String, month: String, year: String) = Action.async{ implicit request =>
+  def allOn(path: String, day: String, month: String, year: String) = Action.async { implicit request =>
     val edition = Edition(request)
 
     val requestedDate = dateFormat.withZoneUTC()
@@ -83,7 +87,9 @@ object AllIndexController extends Controller with ExecutionContexts with ItemRes
 
   // this is simply the latest by date. No lead content, editors picks, or anything else
   private def loadLatest(path: String, date: DateTime)(implicit request: RequestHeader): Future[Option[IndexPage]] = {
-    val result = LiveContentApi.item(s"/$path", Edition(request)).pageSize(50).toDate(date).orderBy("newest").response.map{ item =>
+    val result = getResponse(
+      LiveContentApi.item(s"/$path", Edition(request)).pageSize(50).toDate(date).orderBy("newest")
+    ).map{ item =>
       item.section.map( section =>
         IndexPage(Section(section), item.results.map(Content(_)), date)
       ).orElse(item.tag.map( tag =>
@@ -98,7 +104,12 @@ object AllIndexController extends Controller with ExecutionContexts with ItemRes
   }
 
   private def findNewer(path: String, date: DateTime)(implicit request: RequestHeader): Future[Option[DateTime]] = {
-    val result = LiveContentApi.item(s"/$path", Edition(request)).pageSize(1).fromDate(date).orderBy("oldest").response.map{ item =>
+    val result = getResponse(
+      LiveContentApi.item(s"/$path", Edition(request))
+        .pageSize(1)
+        .fromDate(date)
+        .orderBy("oldest")
+    ).map{ item =>
       item.results.headOption.map(_.webPublicationDate.withZone(Edition(request).timezone))
     }
     result.recover{ case e: Exception =>
