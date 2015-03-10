@@ -43,8 +43,7 @@ define([
 
         detectPressFailureMs: 10000,
 
-        detectPendingChangesInClipboardOften:  2000,
-        detectPendingChangesInClipboardSeldom: 5000,
+        detectPendingChangesInClipboard: 4000,
 
         maxFronts: 500,
 
@@ -75,7 +74,7 @@ define([
 
         apiBase:               '',
         apiSearchBase:         '/api/proxy',
-        apiSearchParams:       'show-elements=video&show-tags=all&show-fields=internalContentCode,isLive,firstPublicationDate,scheduledPublicationDate,headline,trailText,byline,thumbnail,liveBloggingNow',
+        apiSearchParams:       'show-elements=video&show-tags=all&show-fields=internalContentCode,isLive,firstPublicationDate,scheduledPublicationDate,headline,trailText,byline,thumbnail,liveBloggingNow,membershipAccess',
 
         imageCdnDomain:        'guim.co.uk',
         previewBase:           'http://preview.gutools.co.uk',
